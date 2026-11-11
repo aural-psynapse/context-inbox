@@ -21,7 +21,8 @@ Each project keeps a folder in a separate private repo with `config.json` and `R
 ## Run
 
 - [runner/prompt.txt](runner/prompt.txt): prompt for a scheduled run.
-- [runner/run.sh](runner/run.sh): run once on this machine.
+- [runner/fire.sh](runner/fire.sh): start the scheduled cloud run from any agent or script.
+- [runner/run.sh](runner/run.sh): run once on this machine, in an interactive session.
 - [.claude/skills/](.claude/skills/): setup and run-now skills.
 - [.claude/hooks/require-ctx-marker.py](.claude/hooks/require-ctx-marker.py): refuses destination writes that lack a `ctx:` marker, and chat posts.
 

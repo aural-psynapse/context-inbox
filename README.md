@@ -38,7 +38,7 @@ The agent looks up channel IDs, picks or writes a reader for each source and a g
 | [Connector](connector/check.py) | Finds your projects repo, checks every config, and tells the run which reader and guide to use. A config error stops the run before it reads any message. The run logs the errors and writes nothing else. |
 | [Integrations](integrations/) | Slack reader. Linear, Attio and GitHub guides. Recipes such as [Slack to Attio](integrations/recipes/slack-to-attio.md). |
 | [Review page](ui/review.html) | Items to approve, reject or edit, filtered by status and destination. Last sync, and a run log with counts and errors per run. Keys: J, K, A, R, E, U. |
-| [Runner](runner/) | The scheduled-run prompt, and `run.sh` to run once on your machine. |
+| [Runner](runner/) | The scheduled-run prompt. `fire.sh` starts the cloud run from any agent or script. `run.sh` runs once on your machine, with you watching. |
 | [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
 | [Skills and hook](.claude/) | `context-inbox-setup` and `context-inbox-run` skills. A hook that refuses the connector writes it lists, commits and GitHub writes when they lack a `ctx:` marker, and any chat post. It checks the marker is there; the run checks approval. |
 | [Example projects repo](projects-example/) | One project, Acme: Slack to Linear and Slack to Attio. |
@@ -52,7 +52,7 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 1. **Make a project folder** in a private repo of its own: copy of [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then run `python3 connector/check.py <projects repo> <project>`.
 2. **Publish [`ui/review.html`](ui/review.html)** as a claude.ai artifact with capabilities `{ "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }`. Put its URL in `review_page`. Share it with your approvers as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
-4. **Run it** with `runner/run.sh <projects repo> <project>`. To run it every day, save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code routine with a cron schedule.
+4. **Run it** every day: save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code scheduled task with a cron schedule. Start it at any other time with `runner/fire.sh`, or with `runner/run.sh <projects repo> <project>` to watch it run. [`runner/README.md`](runner/README.md) has the details.
 
 ## Config
 

@@ -12,7 +12,7 @@
 
 ## Run on a schedule
 
-Save `prompt.txt` as a Claude Code routine with a daily cron. Give it:
+Save `prompt.txt` as a Claude Code scheduled task with a daily cron. Give it:
 
 - context-inbox as the first repo, so the session starts inside it and loads the write check in `.claude/`.
 - Your projects repo, and every repo a guide writes to.
@@ -20,3 +20,15 @@ Save `prompt.txt` as a Claude Code routine with a daily cron. Give it:
 - Each source token as a network secret for its API host.
 
 A scheduled run with a config error writes a run log entry with the errors and writes nothing else.
+
+## Start a run from an agent or a script
+
+`fire.sh` starts the scheduled task now and prints the link to its session. It needs no person and no Claude Code on the calling machine, so any agent, script or alert can use it.
+
+1. Add an API trigger to the scheduled task on the web, as [the scheduled tasks docs](https://code.claude.com/docs/en/routines#add-an-api-trigger) describe. Copy the Fire URL and the token. The token shows once.
+2. Set `CONTEXT_INBOX_FIRE_URL` and `CONTEXT_INBOX_FIRE_TOKEN` to them, outside git.
+3. Run `runner/fire.sh`.
+
+A Claude Code session that has the RemoteTrigger tool can also start the task by its id, with the `run` action.
+
+`run.sh` is for a person at the keyboard. A session started with `claude -p` cannot load the review page tools, so a script cannot use `run.sh`.
