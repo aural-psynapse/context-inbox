@@ -8,11 +8,11 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 - Every item cites at least one message: author, date, link, and a verbatim quote of at most 2 sentences.
 - A fact without a citation does not exist. Deal sizes, dates, names and statuses come from a cited message or stay out.
 - A message feeds only the destinations its channel lists in `feeds`.
-- Unsure whether a message is about a client or lead: write the item with `"unsure": true` and one plain `question` for the reviewer. Every such message gets an item.
-- Channels marked `private` are one-to-one chats that also hold personal talk. Take only messages about clients, leads, deals, partners and work for them. Skip everything else entirely: no quote, no paraphrase, no hint it exists. When a message mixes both, quote only the work sentence. When unsure, leave it out.
+- Unsure whether a message matters to a destination it feeds: write the item with `"unsure": true` and one plain `question` for the reviewer. Every such message gets an item.
+- Channels marked `private` are one-to-one chats that also hold personal talk. Take only messages that matter to the destinations the channel feeds. Skip everything else entirely: no quote, no paraphrase, no hint it exists. When a message mixes both, quote only the work sentence. When unsure, leave it out.
 - Check the destination first. An existing record gets an update item that names it in `existing`. A fact already recorded gets no item.
 - One item per destination record. Several messages about the same record merge into one item with several citations.
-- History runs propose the current state. A lead that went cold or a deal that closed is proposed at its latest state, citing the latest messages.
+- History runs propose the current state. A record that changed several times is proposed at its latest state, citing the latest messages.
 
 ## Writing
 
@@ -25,8 +25,8 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 {
   "id": "<destination id>--<record id, file slug, or first cited message ts without the dot>",
   "dest": "<destination id from config>",
-  "target": "<destination type: linear | attio | github>",
-  "action": "create_issue | update_issue | comment_issue | create_deal | update_deal | add_note | create_task | add_file | edit_file",
+  "target": "<destination type from config>",
+  "action": "<verb the destination guide defines, such as create_issue or add_note>",
   "where": "Plain words: which project, record or file",
   "existing": { "id": "...", "url": "..." },
   "title": "Short title of the record or change",

@@ -1,26 +1,28 @@
 # context-inbox
 
-> An agent reads new chat messages, drafts cited changes for Linear, Attio and GitHub, and writes each one only after a person approves it on a claude.ai review page.
+> A framework for turning messages from any source into cited changes in any destination. An agent drafts each change, a person approves it on a claude.ai review page, and the next run writes only approved changes.
 
-A run serves one project. The project's `config.json` and `RULES.md` live in a separate private repo. The agent follows AGENTS.md and reads and writes the review page through the ArtifactData tool.
+Each project keeps `config.json` and `RULES.md` in a separate private repo. The config maps channels to destinations. Projects add their own readers and guides there, next to the config.
 
-## Run
+## Start here
 
-- [AGENTS.md](AGENTS.md): the daily run, step by step, and the review page collections.
+- [AGENTS.md](AGENTS.md): set up a project, then the daily run, step by step.
 - [RULES.md](RULES.md): what a proposal is, how to write it, and its JSON shape.
-- [config.example.json](config.example.json): the shape of a project's config.
+- [config.example.json](config.example.json): config shape, with built-in, custom and connector sources.
 
-## Destinations
+## Plug-in points
 
-- [destinations/linear.md](destinations/linear.md): issues and comments through the Linear connector.
-- [destinations/attio.md](destinations/attio.md): deal notes and tasks through the Attio connector.
-- [destinations/github.md](destinations/github.md): one commit per item to a docs repo.
+- [sources/README.md](sources/README.md): reader arguments, message format, and reading through a connector.
+- [destinations/README.md](destinations/README.md): the four things a destination guide must say.
 
-## Code
+## Built in
 
-- [scripts/sources/slack.py](scripts/sources/slack.py): reads Slack messages newer than each channel's cursor, thread replies included.
+- [sources/slack.py](sources/slack.py): Slack reader, thread replies included.
+- [destinations/linear.md](destinations/linear.md): Linear issues and comments.
+- [destinations/attio.md](destinations/attio.md): Attio deal notes and tasks.
+- [destinations/github.md](destinations/github.md): one commit per item to a repo.
 - [review.html](review.html): the review page.
 
 ## Optional
 
-- [README.md](README.md): setup and config reference for people.
+- [README.md](README.md): overview and manual setup for people.
