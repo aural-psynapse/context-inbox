@@ -23,12 +23,11 @@ A scheduled run with a config error writes a run log entry with the errors and w
 
 ## Start a run from an agent or a script
 
-`fire.sh` starts the scheduled task now and prints the link to its session. It needs no person and no Claude Code on the calling machine, so any agent, script or alert can use it.
+`fire.sh PROJECTS_DIR PROJECT` starts the project's scheduled task now and prints the link to the run. No person needs to watch.
 
-1. Add an API trigger to the scheduled task on the web, as [the scheduled tasks docs](https://code.claude.com/docs/en/routines#add-an-api-trigger) describe. Copy the Fire URL and the token. The token shows once.
-2. Set `CONTEXT_INBOX_FIRE_URL` and `CONTEXT_INBOX_FIRE_TOKEN` to them, outside git.
-3. Run `runner/fire.sh`.
-
-A Claude Code session that has the RemoteTrigger tool can also start the task by its id, with the `run` action.
+- Put the task's id in `routine` in the project's `config.json`, such as `"routine": "trig_01ABC"`. `RemoteTrigger` with action `list` shows the ids, and so does the task's page on claude.ai.
+- The script asks a background Claude Code session to start the task. That session needs a claude.ai sign-in and nothing else.
+- `fire.sh PROJECTS_DIR PROJECT --check` only confirms the task exists and prints its schedule.
+- For a caller with no Claude Code, such as an alert, add an API trigger to the task on the web, as [the scheduled tasks docs](https://code.claude.com/docs/en/routines#add-an-api-trigger) describe. Set `CONTEXT_INBOX_FIRE_URL` and `CONTEXT_INBOX_FIRE_TOKEN` to its Fire URL and token, outside git. `fire.sh` then calls that URL directly.
 
 `run.sh` is for a person at the keyboard. A session started with `claude -p` cannot load the review page tools, so a script cannot use `run.sh`.

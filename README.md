@@ -52,13 +52,14 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 1. **Make a project folder** in a private repo of its own: copy of [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then run `python3 connector/check.py <projects repo> <project>`.
 2. **Publish [`ui/review.html`](ui/review.html)** as a claude.ai artifact with capabilities `{ "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }`. Put its URL in `review_page`. Share it with your approvers as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
-4. **Run it** every day: save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code scheduled task with a cron schedule. Start it at any other time with `runner/fire.sh`, or with `runner/run.sh <projects repo> <project>` to watch it run. [`runner/README.md`](runner/README.md) has the details.
+4. **Run it** every day: save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code scheduled task with a cron schedule. Start it at any other time with `runner/fire.sh <projects repo> <project>`, or with `runner/run.sh <projects repo> <project>` to watch it run. [`runner/README.md`](runner/README.md) has the details.
 
 ## Config
 
 | Key | Meaning |
 |---|---|
 | `review_page` | URL of the published review page. |
+| `routine` | Optional. Id of the scheduled task, such as `trig_01ABC`, so `runner/fire.sh` can start it. |
 | `sources[].id` | Name for the source. Cursors are stored under it. |
 | `sources[].type` | Name of the tool, such as `slack`. |
 | `sources[].reader` | Integration name, such as `slack`, or a path inside the project folder. |

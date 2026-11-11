@@ -26,7 +26,7 @@ REPO = Path(__file__).resolve().parent.parent
 SAFE_ID = re.compile(r"^[A-Za-z0-9_.~:@+-]+$")
 SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
-TOP_KEYS = {"project", "review_page", "sources", "destinations"}
+TOP_KEYS = {"project", "review_page", "routine", "sources", "destinations"}
 TYPOS = {"feed": "feeds", "channel": "channels", "destination": "destinations", "source": "sources", "guides": "guide", "readers": "reader", "privat": "private"}
 DEST_KEYS = {"id", "type", "guide"}  # other keys are read by the guide
 
@@ -83,6 +83,9 @@ def check(project: Path) -> dict:
     if not isinstance(page, str) or not PAGE.match(page) or re.search(r"replace|example|00000000", page):
         errors.append("review_page must be a published claude.ai artifact URL, not a placeholder")
     out["review_page"] = page
+    routine = cfg.get("routine")
+    if routine is not None and (not isinstance(routine, str) or not re.match(r"^trig_[A-Za-z0-9]+$", routine)):
+        errors.append("routine must be a scheduled task id like trig_01ABC")
 
     dests: dict = {}
     raw_dests = cfg.get("destinations")

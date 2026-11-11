@@ -7,4 +7,4 @@ description: "Run context-inbox once for one project. It pushes approved items, 
 2. Follow "Daily run" in AGENTS.md, using the paths the check printed.
 3. Report the counts from the runs doc you wrote.
 
-In a session with no review page tools, such as `claude -p` or another agent, run `runner/fire.sh` instead. It starts the scheduled cloud run and prints its link.
+In a session with no review page tools, such as `claude -p` or another agent, run `runner/fire.sh <projects repo> <project>` instead. It starts the scheduled cloud run and prints its link.

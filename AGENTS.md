@@ -29,7 +29,7 @@ Ask the person only what you cannot look up. Done when the first run's items sho
 6. **Check the config.** Run `python3 connector/check.py <projects repo> <project>` until it exits 0.
 7. **Publish the review page.** Publish [`ui/review.html`](ui/review.html) as a claude.ai artifact with capabilities `{ "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }`. Put its URL in `review_page`. Ask the person to share it with everyone who approves, as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
 8. **Run once.** Do the daily run below. The first run reads the whole history.
-9. **Schedule it.** Offer a daily scheduled run with the prompt in [`runner/prompt.txt`](runner/prompt.txt), and an API trigger so `runner/fire.sh` can start it at any time. [`runner/README.md`](runner/README.md) has the steps. It needs this repo, the projects repo, every repo a guide writes to, and every connector a guide names.
+9. **Schedule it.** Offer a daily scheduled run with the prompt in [`runner/prompt.txt`](runner/prompt.txt), and put its id in `routine` in `config.json` so `runner/fire.sh` can start it at any time. [`runner/README.md`](runner/README.md) has the steps. It needs this repo, the projects repo, every repo a guide writes to, and every connector a guide names.
 
 ## Sources
 
