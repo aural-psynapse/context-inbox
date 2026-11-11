@@ -93,9 +93,11 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 .lr-title { font-size: 13px; font-weight: 600; color: var(--fg); }
 .lr-when { grid-column: 2; display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-2); }
 .lr-when svg { width: 12px; height: 12px; flex: none; }
-.lr-meta { grid-column: 2; display: flex; gap: 12px; margin-top: 4px; font-size: 12px; color: var(--fg-2); }
-.lr-meta span { display: inline-flex; align-items: center; gap: 4px; }
-.lr-meta b { font-weight: 500; font-size: 12px; line-height: 18px; min-width: 18px; padding: 0 6px; box-sizing: border-box; text-align: center; border-radius: 2em; background: var(--row-sel); color: var(--fg); font-variant-numeric: tabular-nums; }
+.lr-meta { grid-column: 1 / -1; margin: 8px -8px -8px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr; }
+.lr-meta div { padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.lr-meta div + div { border-left: 1px solid var(--border); }
+.lr-meta span { font-size: 11px; color: var(--fg-2); }
+.lr-meta b { font-size: 15px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
 .lr-err { grid-column: 2; font-size: 12px; color: var(--danger); }
 .lock { font-size: 12px; font-weight: 500; color: var(--warn); }
 .btn.saved[disabled] { opacity: 1; color: var(--success); border-color: var(--success); }
@@ -324,7 +326,7 @@ document.onkeydown = (e) => {
     el.innerHTML = icon
       + `<div class="lr-title">Daily sync</div>`
       + `<div class="lr-when">${cal}<time>${esc(ago)}</time></div>`
-      + `<div class="lr-meta"><span>Pushed <b>${esc(String(r.pushed ?? 0))}</b></span><span>New <b>${esc(String(r.proposed ?? 0))}</b></span></div>`
+      + `<div class="lr-meta"><div><span>Pushed</span><b>${esc(Number(r.pushed ?? 0).toLocaleString("en-US"))}</b></div><div><span>New</span><b>${esc(Number(r.proposed ?? 0).toLocaleString("en-US"))}</b></div></div>`
       + (errs ? `<div class="lr-err">${errs} error${errs > 1 ? "s" : ""}: ${esc(String(r.errors[0]))}</div>` : "");
     el.className = "lastrun " + (errs ? "bad" : "ok");
   }, () => {});
