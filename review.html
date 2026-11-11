@@ -139,7 +139,7 @@ const places = () => [...new Set(S.docs.map(place))].sort();
 const tinfo = (k) => { const d = S.docs.find((x) => place(x) === k); return [k, TYPE_COLOR[d?.target] || TYPE_COLOR[k] || "var(--fg-2)"]; };
 const STATUS = [["pending", "To review"], ["ask", "Needs your answer"], ["approved", "Approved"], ["rejected", "Rejected"], ["all", "All"]];
 const st = (p) => p.decision?.status || "pending";
-const statuses = () => S.owner ? [...STATUS.slice(0, 4), ["mine", "Only you see these"], STATUS[4]] : STATUS;
+const statuses = () => STATUS;
 const inStatus = (p, s) => s === "all" || (s === "mine" ? !!p.privateOnly || (p.citations || []).some((c) => c.private) : (s === "ask" ? p.unsure && st(p) === "pending" : st(p) === s));
 const visible = () => S.docs.filter((p) => inStatus(p, S.status) && (S.target === "all" || place(p) === S.target));
 const lastDate = (p) => (p.citations || []).map((c) => c.date).sort().pop() || "";
@@ -170,7 +170,7 @@ function renderList() {
   if (!ps.find((p) => p.id === S.cur)) S.cur = ps[0]?.id ?? null;
   $("rows").innerHTML = ps.length ? ps.map((p) => `<div class="row${p.id === S.cur ? " on" : ""}" data-id="${esc(p.id)}" tabindex="0">
       ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${fmt(lastDate(p))}</div>
-      <div class="sub">${tag(place(p))}${inStatus(p, "mine") ? `<span class="lock">Only you</span>` : ""}<span>${esc((p.action || "").replace(/_/g, " "))}</span></div></div>`).join("")
+      <div class="sub">${tag(place(p))}<span>${esc((p.action || "").replace(/_/g, " "))}</span></div></div>`).join("")
     : `<div class="empty">${S.docs.length ? "Nothing here. You're done with this view." : "No proposals yet. Claude adds them after each Slack scan."}</div>`;
 }
 
@@ -308,6 +308,5 @@ document.onkeydown = (e) => {
     el.className = "lastrun" + (errs ? " bad" : "");
   }, () => {});
   sub("proposals", pub);
-  if (S.owner) sub("private", priv);
 })();
 </script>
