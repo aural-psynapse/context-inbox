@@ -87,9 +87,15 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 .edited { font-size: 12px; color: var(--fg-2); }
 .msg { font-size: 13px; font-weight: 500; }
 .msg.ok { color: var(--success); } .msg.bad { color: var(--danger); }
-.lastrun .nav { cursor: default; } .lastrun .nav:hover { background: none; }
-.lastrun.bad h3, .lr-err { color: var(--danger); }
-.lr-err { font-size: 12px; padding: 0 8px; overflow-wrap: anywhere; }
+.lastrun { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.lastrun > div { padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.lastrun > .lr-wide { grid-column: 1 / -1; }
+.lastrun > div + div:not(.lr-wide) { border-top: 1px solid var(--border); }
+.lastrun > div + div + div:not(.lr-wide) { border-left: 1px solid var(--border); }
+.lastrun span { font-size: 11px; color: var(--fg-2); }
+.lastrun b { font-size: 15px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lastrun.bad b, .lr-err { color: var(--danger); }
+.lr-err { border-top: 1px solid var(--border); font-size: 12px; overflow-wrap: anywhere; }
 .lock { font-size: 12px; font-weight: 500; color: var(--warn); }
 .btn.saved[disabled] { opacity: 1; color: var(--success); border-color: var(--success); }
 .ask textarea { margin-top: 8px; background: var(--panel); font-weight: 400; }
@@ -113,7 +119,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 <div class="app" id="app">
   <aside class="side">
     <div class="brand">Context Inbox</div>
-    <div class="group lastrun" id="lastrun"><h3>Not synced yet</h3></div>
+    <div class="lastrun" id="lastrun"><div class="lr-wide"><span>Synced</span><b>Not yet</b></div></div>
     <div class="group" id="g-status"><h3>Inbox</h3></div>
     <div class="group" id="g-target"><h3>Where it goes</h3></div>
     <div class="hint">
@@ -311,11 +317,11 @@ document.onkeydown = (e) => {
     const ago = mins < 1 ? "just now" : mins < 60 ? unit(mins, "minute") : mins < 1440 ? unit(Math.round(mins / 60), "hour") : unit(Math.round(mins / 1440), "day");
     el.title = when;
     const num = (n) => esc(Number(n ?? 0).toLocaleString("en-US"));
-    el.innerHTML = `<h3>${errs ? "Sync failed" : "Synced"}: ${esc(ago)}</h3>`
-      + `<div class="nav">Pushed<span class="n">${num(r.pushed)}</span></div>`
-      + `<div class="nav">New<span class="n">${num(r.proposed)}</span></div>`
-      + (errs ? `<div class="lr-err">${errs} error${errs > 1 ? "s" : ""}: ${esc(String(r.errors[0]))}</div>` : "");
-    el.className = "group lastrun" + (errs ? " bad" : "");
+    el.innerHTML = `<div class="lr-wide"><span>${errs ? "Sync failed" : "Synced"}</span><b>${esc(ago)}</b></div>`
+      + `<div><span>Pushed</span><b>${num(r.pushed)}</b></div>`
+      + `<div><span>New</span><b>${num(r.proposed)}</b></div>`
+      + (errs ? `<div class="lr-wide lr-err">${errs} error${errs > 1 ? "s" : ""}: ${esc(String(r.errors[0]))}</div>` : "");
+    el.className = "lastrun" + (errs ? " bad" : "");
   }, () => {});
   sub("proposals", pub);
 })();
