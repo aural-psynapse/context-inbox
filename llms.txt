@@ -1,0 +1,21 @@
+# context-inbox
+
+> Reads updates from chat tools, proposes changes to work tools, and writes each change only after a person approves it on a review page.
+
+## Docs
+
+- [AGENTS.md](AGENTS.md): the daily run, step by step, and the review page collections.
+- [RULES.md](RULES.md): what counts as a proposal, how to write it, and its JSON shape.
+- [config.example.json](config.example.json): the shape of a project's config.
+- [README.md](README.md): what this is, for people.
+
+## Destinations
+
+- [destinations/linear.md](destinations/linear.md)
+- [destinations/attio.md](destinations/attio.md)
+- [destinations/github.md](destinations/github.md)
+
+## Code
+
+- [scripts/sources/slack.py](scripts/sources/slack.py): reads new Slack messages for one source.
+- [review.html](review.html): source of the review page.

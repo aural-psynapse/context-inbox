@@ -1,0 +1,313 @@
+<title>Context Inbox</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Linear Inbox layout: sidebar of filters | list of items | detail pane. Achromatic, one indigo accent. */
+:root {
+  --bg: #fcfcfd; --side: #f4f5f8; --panel: #ffffff; --row-hover: #f0f1f4; --row-sel: #e8e9ef;
+  --fg: #000000; --fg-2: #3c4149; --border: #e3e4e8; --border-soft: #eeeff2;
+  --accent: #5e6ad2; --accent-on: #ffffff;
+  --success: #27a644; --danger: #dc2626; --warn: #c27c0e; --warn-bg: #fdf6e7;
+  --t-linear: #5e6ad2; --t-attio: #0e8a74; --t-sa: #c2551a;
+  --font: "Inter", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #08090a; --side: #0f1011; --panel: #0f1011; --row-hover: #16171a; --row-sel: #1c1d21;
+  --fg: #ffffff; --fg-2: #d0d6e0; --border: rgba(255,255,255,.08); --border-soft: rgba(255,255,255,.05);
+  --accent: #5e6ad2; --accent-on: #ffffff; --success: #4cc26a; --danger: #f26b6b; --warn: #eab308; --warn-bg: rgba(234,179,8,.1);
+  --t-linear: #828fff; --t-attio: #3fc9b0; --t-sa: #f08a4b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #08090a; --side: #0f1011; --panel: #0f1011; --row-hover: #16171a; --row-sel: #1c1d21;
+  --fg: #ffffff; --fg-2: #d0d6e0; --border: rgba(255,255,255,.08); --border-soft: rgba(255,255,255,.05);
+  --accent: #5e6ad2; --accent-on: #ffffff; --success: #4cc26a; --danger: #f26b6b; --warn: #eab308; --warn-bg: rgba(234,179,8,.1);
+  --t-linear: #828fff; --t-attio: #3fc9b0; --t-sa: #f08a4b; color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.5 var(--font); font-feature-settings: "cv01", "ss03"; margin: 0; overflow: hidden; }
+.app { display: grid; grid-template-columns: 220px 380px minmax(0, 1fr); height: 100%; }
+/* sidebar */
+.side { background: var(--side); border-right: 1px solid var(--border); padding: 14px 10px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto;
+  padding-left: max(10px, env(safe-area-inset-left, 0px)); }
+.brand { font-weight: 600; font-size: 14px; padding: 2px 8px; }
+.group { display: grid; gap: 1px; }
+.group h3 { font-size: 11px; font-weight: 500; color: var(--fg-2); margin: 0 0 4px; padding: 0 8px; }
+.nav { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; border: 0; background: none; color: var(--fg); font: 500 13px var(--font); cursor: pointer; text-align: left; width: 100%; }
+.nav:hover { background: var(--row-hover); }
+.nav.on { background: var(--row-sel); }
+.nav .n { margin-left: auto; color: var(--fg-2); font-variant-numeric: tabular-nums; font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.side .hint { margin-top: auto; font-size: 12px; color: var(--fg-2); padding: 0 8px; display: grid; gap: 4px; }
+kbd { font: 500 11px var(--font); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; background: var(--panel); color: var(--fg); }
+/* list */
+.list { border-right: 1px solid var(--border); overflow-y: auto; background: var(--bg); }
+.list-head { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 16px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; z-index: 1; }
+.list-head .n { color: var(--fg-2); font-weight: 500; }
+.row { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 16px; border-bottom: 1px solid var(--border-soft); cursor: pointer; align-items: start; }
+.row:hover { background: var(--row-hover); }
+.row.on { background: var(--row-sel); box-shadow: inset 2px 0 0 var(--accent); }
+.row .title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .sub { grid-column: 2 / 4; display: flex; gap: 8px; align-items: center; color: var(--fg-2); font-size: 12px; min-width: 0; }
+.row .sub span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .date { color: var(--fg-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.icon { width: 14px; height: 14px; margin-top: 3px; }
+.tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--fg); white-space: nowrap; }
+.empty { padding: 48px 24px; text-align: center; color: var(--fg-2); }
+/* detail */
+.detail { overflow-y: auto; background: var(--panel); }
+.d-wrap { max-width: 760px; margin: 0 auto; padding: 28px 32px 48px; display: grid; gap: 20px;
+  padding-right: max(32px, env(safe-area-inset-right, 0px)); }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--fg-2); font-size: 12px; }
+.crumbs .where { overflow-wrap: anywhere; }
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; margin: 0; text-wrap: balance; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--fg); font: 500 13px var(--font); cursor: pointer; }
+.btn:hover { background: var(--row-hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
+.btn.primary:hover { filter: brightness(1.1); }
+.btn.danger { color: var(--danger); }
+.btn kbd { border-color: currentColor; background: transparent; color: inherit; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.status { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.section h2 { font-size: 12px; font-weight: 500; color: var(--fg-2); margin: 0 0 8px; }
+.body { white-space: pre-wrap; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.props { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; font-size: 13px; }
+.props dt { color: var(--fg-2); } .props dd { margin: 0; overflow-wrap: anywhere; }
+.props a, .cite a { color: var(--accent); text-decoration: none; } .props a:hover, .cite a:hover { text-decoration: underline; }
+.ask { background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 8px; padding: 12px 14px; font-size: 14px; font-weight: 500; display: grid; gap: 4px; }
+.ask small { font-size: 12px; font-weight: 500; color: var(--warn); }
+.cites { display: grid; gap: 1px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.cite { padding: 12px 14px; display: grid; gap: 6px; background: var(--panel); }
+.cite + .cite { border-top: 1px solid var(--border); }
+.cite .who { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--fg-2); }
+.cite .who b { color: var(--fg); font-weight: 500; }
+.cite .who a { margin-left: auto; }
+.cite q { font-size: 14px; overflow-wrap: anywhere; quotes: none; }
+textarea { width: 100%; box-sizing: border-box; font: 14px/1.6 var(--font); color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; resize: vertical; }
+textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.edited { font-size: 12px; color: var(--fg-2); }
+.msg { font-size: 13px; font-weight: 500; }
+.msg.ok { color: var(--success); } .msg.bad { color: var(--danger); }
+.lastrun { font-size: 12px; color: var(--fg-2); padding: 0 8px; overflow-wrap: anywhere; }
+.lastrun.bad { color: var(--danger); }
+.lock { font-size: 12px; font-weight: 500; color: var(--warn); }
+.btn.saved[disabled] { opacity: 1; color: var(--success); border-color: var(--success); }
+.ask textarea { margin-top: 8px; background: var(--panel); font-weight: 400; }
+.back { display: none; }
+@media (max-width: 1100px) { .app { grid-template-columns: 300px minmax(0, 1fr); } .side { display: none; } }
+@media (max-width: 720px) {
+  body { overflow: auto; }
+  .app { display: block; height: auto; }
+  .list { border-right: 0; }
+  .list-head { top: env(safe-area-inset-top, 0px); }
+  .app.show-detail .list { display: none; } .app:not(.show-detail) .detail { display: none; }
+  .d-wrap { padding: 16px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+  .row { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .back { display: inline-flex; width: max-content; }
+  .mfilter { display: flex !important; }
+}
+.mfilter { display: none; gap: 6px; overflow-x: auto; padding: 8px 16px; border-bottom: 1px solid var(--border); }
+.mfilter .nav { width: auto; white-space: nowrap; border: 1px solid var(--border); }
+</style>
+
+<div class="app" id="app">
+  <aside class="side">
+    <div class="brand">Context Inbox</div>
+    <div class="lastrun" id="lastrun">Last run: not yet</div>
+    <div class="group" id="g-status"><h3>Inbox</h3></div>
+    <div class="group" id="g-target"><h3>Where it goes</h3></div>
+    <div class="hint">
+      <div><kbd>J</kbd> <kbd>K</kbd> next / previous</div>
+      <div><kbd>A</kbd> approve · <kbd>R</kbd> reject</div>
+      <div><kbd>E</kbd> edit text · <kbd>U</kbd> undo</div>
+    </div>
+  </aside>
+  <section class="list" id="list">
+    <div class="list-head"><span id="lh">To review</span><span class="n" id="lhn"></span></div>
+    <div class="mfilter" id="mfilter"></div>
+    <div id="rows"><div class="empty">Loading proposals…</div></div>
+  </section>
+  <main class="detail" id="detail"><div class="empty">Loading…</div></main>
+</div>
+
+<script>
+const S = { docs: [], status: "pending", target: "all", cur: null, editing: false, db: null, draft: {}, saving: null, err: null };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const TYPE_COLOR = { linear: "var(--t-linear)", attio: "var(--t-attio)", github: "var(--t-sa)" };
+const place = (p) => p.dest || p.target;
+const places = () => [...new Set(S.docs.map(place))].sort();
+const tinfo = (k) => { const d = S.docs.find((x) => place(x) === k); return [k, TYPE_COLOR[d?.target] || TYPE_COLOR[k] || "var(--fg-2)"]; };
+const STATUS = [["pending", "To review"], ["ask", "Needs your answer"], ["approved", "Approved"], ["rejected", "Rejected"], ["all", "All"]];
+const st = (p) => p.decision?.status || "pending";
+const statuses = () => S.owner ? [...STATUS.slice(0, 4), ["mine", "Only you see these"], STATUS[4]] : STATUS;
+const inStatus = (p, s) => s === "all" || (s === "mine" ? !!p.privateOnly || (p.citations || []).some((c) => c.private) : (s === "ask" ? p.unsure && st(p) === "pending" : st(p) === s));
+const visible = () => S.docs.filter((p) => inStatus(p, S.status) && (S.target === "all" || place(p) === S.target));
+const lastDate = (p) => (p.citations || []).map((c) => c.date).sort().pop() || "";
+const fmt = (d) => { if (!d) return ""; const x = new Date(d + "T00:00:00"); return x.toLocaleDateString("en-GB", { day: "numeric", month: "short" }); };
+
+function icon(p) {
+  const s = st(p);
+  if (s === "approved") return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--success)"/><path d="M4.2 7.2l1.9 1.9 3.7-4" stroke="var(--panel)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if (s === "rejected") return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--fg-2)"/><path d="M4.8 4.8l4.4 4.4M9.2 4.8l-4.4 4.4" stroke="var(--panel)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+  if (p.unsure) return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="2 2"/><circle cx="7" cy="7" r="1.6" fill="var(--warn)"/></svg>`;
+  return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="var(--fg-2)" stroke-width="1.5"/></svg>`;
+}
+const tag = (t) => { const [n, c] = tinfo(t); return `<span class="tag"><span class="dot" style="background:${c}"></span>${esc(n)}</span>`; };
+
+function renderNav() {
+  const ps = S.docs;
+  const sBtn = ([k, l]) => `<button class="nav${S.status === k ? " on" : ""}" data-status="${k}">${l}<span class="n">${ps.filter((p) => inStatus(p, k)).length}</span></button>`;
+  const tBtn = (t) => `<button class="nav${S.target === t ? " on" : ""}" data-target="${t}">${t === "all" ? "Every place" : `<span class="dot" style="background:${tinfo(t)[1]}"></span>${esc(t)}`}<span class="n">${ps.filter((p) => (t === "all" || place(p) === t) && inStatus(p, S.status)).length}</span></button>`;
+  $("g-status").innerHTML = "<h3>Inbox</h3>" + statuses().map(sBtn).join("");
+  $("g-target").innerHTML = "<h3>Where it goes</h3>" + ["all", ...places()].map(tBtn).join("");
+  $("mfilter").innerHTML = statuses().map(sBtn).join("");
+  $("lh").textContent = statuses().find(([k]) => k === S.status)[1] + (S.target === "all" ? "" : " · " + S.target);
+}
+
+function renderList() {
+  const ps = visible();
+  $("lhn").textContent = ps.length;
+  if (!ps.find((p) => p.id === S.cur)) S.cur = ps[0]?.id ?? null;
+  $("rows").innerHTML = ps.length ? ps.map((p) => `<div class="row${p.id === S.cur ? " on" : ""}" data-id="${esc(p.id)}" tabindex="0">
+      ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${fmt(lastDate(p))}</div>
+      <div class="sub">${tag(place(p))}${inStatus(p, "mine") ? `<span class="lock">Only you</span>` : ""}<span>${esc((p.action || "").replace(/_/g, " "))}</span></div></div>`).join("")
+    : `<div class="empty">${S.docs.length ? "Nothing here. You're done with this view." : "No proposals yet. Claude adds them after each Slack scan."}</div>`;
+}
+
+function renderDetail() {
+  const p = S.docs.find((x) => x.id === S.cur);
+  if (!p) { $("detail").innerHTML = `<div class="empty">${S.docs.length ? "Nothing to review in this view." : ""}</div>`; return; }
+  const s = st(p);
+  const body = p.decision?.body ?? p.body;
+  const fields = Object.entries(p.fields || {}).filter(([k, v]) => v !== "" && v != null && k !== "path");
+  const props = [
+    ["Goes to", esc(p.where)],
+    p.fields?.path ? ["File", `<code>${esc(p.fields.path)}</code>`] : null,
+    p.existing?.url ? ["Existing", `<a href="${esc(p.existing.url)}" target="_blank" rel="noreferrer">${esc(p.existing.id || "record")} ↗</a>`] : null,
+    ...fields.map(([k, v]) => [esc(k), esc(typeof v === "object" ? JSON.stringify(v) : v)]),
+  ].filter(Boolean);
+  const who = p.decision?.by ? (p.decision.by === S.uid ? " by you" : ` by ${esc(S.names?.[p.decision.by] || "Someone")}`) : "";
+  const statusText = s === "approved" ? `${icon(p)} Approved${who}` : s === "rejected" ? `${icon(p)} Rejected${who}` : `${icon(p)} Waiting for review`;
+  $("detail").innerHTML = `<div class="d-wrap">
+    <button class="btn back" data-act="back">← All items</button>
+    <div class="crumbs">${tag(place(p))}<span>·</span><span>${esc((p.action || "").replace(/_/g, " "))}</span><span>·</span><span>${esc(p.id)}</span></div>
+    <h1>${esc(p.title)}</h1>
+    <div class="toolbar">
+      ${S.editing ? `<button class="btn primary" data-act="save">Save text</button><button class="btn" data-act="cancel">Cancel</button>`
+      : `<button class="btn primary" data-act="approve"${s === "approved" ? " disabled" : ""}>Approve <kbd>A</kbd></button>
+         <button class="btn danger" data-act="reject"${s === "rejected" ? " disabled" : ""}>Reject <kbd>R</kbd></button>
+         <button class="btn" data-act="edit">Edit text <kbd>E</kbd></button>
+         ${s !== "pending" ? `<button class="btn" data-act="reset">Undo <kbd>U</kbd></button>` : ""}`}
+      <span class="status">${statusText}</span>
+    </div>
+    ${p.unsure ? `<div class="ask"><small>Claude needs your answer</small>${esc(p.question || "Is this about a client?")}
+      <textarea id="note" rows="2" placeholder="Type your answer">${esc(S.draft[p.id] ?? p.decision?.comment ?? "")}</textarea>
+      <div class="toolbar" id="notectl" data-label="Save answer">${noteCtl(p, "Save answer")}</div></div>` : ""}
+    <div class="section"><h2>What gets written</h2>
+      ${S.editing ? `<textarea id="edit" rows="10">${esc(body)}</textarea>` : `<div class="body">${esc(body)}</div>`}
+      ${p.decision?.body != null && p.decision.body !== p.body ? `<div class="edited">You edited this text.</div>` : ""}</div>
+    <div class="section"><h2>Details</h2><dl class="props">${props.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
+    <div class="section"><h2>From Slack (${(p.citations || []).length})</h2><div class="cites">${(p.citations || []).map((c) => `<div class="cite">
+      <div class="who"><b>${esc(c.author)}</b><span>${esc(c.channel)}</span>${c.private ? `<span class="lock">Private chat · only you see this</span>` : ""}<span>${fmt(c.date)}</span>${c.link ? `<a href="${esc(c.link)}" target="_blank" rel="noreferrer">View in Slack ↗</a>` : ""}</div>
+      <q>${esc(c.quote)}</q></div>`).join("")}${p.privateCount ? `<div class="cite"><span class="lock">${p.privateCount} more message${p.privateCount > 1 ? "s" : ""} from a private chat, visible only to the page owner.</span></div>` : ""}</div></div>
+    ${p.privateOnly ? `<div class="edited">This item comes only from a private chat. Only you see it.</div>` : ""}
+    ${p.unsure ? "" : `<div class="section"><h2>Comment for Claude</h2>
+      <textarea id="note" rows="2" placeholder="Optional">${esc(S.draft[p.id] ?? p.decision?.comment ?? "")}</textarea>
+      <div class="toolbar" style="margin-top:8px" id="notectl" data-label="Save comment">${noteCtl(p, "Save comment")}</div></div>`}
+  </div>`;
+}
+
+function noteCtl(p, label) {
+  const saved = p.decision?.comment || "";
+  const cur = S.draft[p.id] ?? saved;
+  const err = S.err?.id === p.id ? `<span class="msg bad">${esc(S.err.text)}</span>` : "";
+  if (S.saving === p.id) return `<button class="btn" disabled>Saving…</button>`;
+  if (cur !== saved) return `<button class="btn primary" data-act="comment">${label}</button><button class="btn" data-act="discard">Discard changes</button>${err}`;
+  return (saved ? `<button class="btn saved" disabled>Saved ✓</button>` : `<button class="btn" disabled>${label}</button>`) + err;
+}
+function refreshCtl() { const el = $("notectl"); const p = S.docs.find((x) => x.id === S.cur); if (el && p) el.innerHTML = noteCtl(p, el.dataset.label); }
+function render() { renderNav(); renderList(); renderDetail(); }
+
+async function decide(patch, advance) {
+  const p = S.docs.find((x) => x.id === S.cur); if (!p) return;
+  const note = S.draft[p.id];
+  const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}) };
+  if (advance) { const ps = visible(); const i = ps.findIndex((x) => x.id === p.id); S.cur = (ps[i + 1] || ps[i - 1] || {}).id ?? null; }
+  S.saving = p.id; S.err = null; refreshCtl();
+  try { await S.db.collection(p._col || "proposals").doc(p.id).update({ decision }); if (S.draft[p.id] === note) delete S.draft[p.id]; }
+  catch (e) { S.err = { id: p.id, text: "Could not save: " + (e.message || e.code) }; }
+  S.saving = null; refreshCtl();
+}
+
+function move(d) { const ps = visible(); const i = ps.findIndex((x) => x.id === S.cur); const n = ps[Math.max(0, Math.min(ps.length - 1, i + d))]; if (n) { S.cur = n.id; S.editing = false; renderList(); renderDetail(); document.querySelector(".row.on")?.scrollIntoView({ block: "nearest" }); } }
+
+function act(a) {
+  if (!S.db) return;
+  const leaves = S.status === "pending" || S.status === "ask";
+  if (a === "approve") decide({ status: "approved" }, leaves);
+  if (a === "reject") decide({ status: "rejected" }, leaves);
+  if (a === "reset") decide({ status: "pending" }, S.status === "approved" || S.status === "rejected");
+  if (a === "comment") decide({}, false);
+  if (a === "edit") { S.editing = true; renderDetail(); $("edit")?.focus(); }
+  if (a === "cancel") { S.editing = false; renderDetail(); }
+  if (a === "save") { const body = $("edit").value; S.editing = false; decide({ body }, false); }
+  if (a === "discard") { delete S.draft[S.cur]; S.err = null; renderDetail(); }
+  if (a === "back") { $("app").classList.remove("show-detail"); }
+}
+
+document.onclick = (e) => {
+  const n = e.target.closest(".nav");
+  if (n) { if (n.dataset.status) S.status = n.dataset.status; if (n.dataset.target) S.target = n.dataset.target; S.cur = null; S.editing = false; render(); return; }
+  const r = e.target.closest(".row");
+  if (r) { S.cur = r.dataset.id; S.editing = false; $("app").classList.add("show-detail"); renderList(); renderDetail(); return; }
+  const b = e.target.closest("[data-act]"); if (b && !b.disabled) act(b.dataset.act);
+};
+document.oninput = (e) => { if (e.target.id === "note" && S.cur) { S.draft[S.cur] = e.target.value; refreshCtl(); } };
+document.onkeydown = (e) => {
+  if (e.target.matches("textarea, input") || e.metaKey || e.ctrlKey || e.altKey) { if (e.key === "Escape") e.target.blur(); return; }
+  const k = e.key.toLowerCase();
+  if (k === "j" || e.key === "ArrowDown") { e.preventDefault(); move(1); }
+  else if (k === "k" || e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+  else if (k === "a") act("approve"); else if (k === "r") act("reject");
+  else if (k === "e") { e.preventDefault(); act("edit"); } else if (k === "u") act("reset");
+};
+
+(async () => {
+  const db = await window.claude?.use?.("db");
+  if (!db) { $("rows").innerHTML = `<div class="empty">Sign in to claude.ai to review proposals.</div>`; $("detail").innerHTML = ""; return; }
+  S.db = db;
+  const t = setTimeout(() => { if (!S.docs.length) $("rows").innerHTML = `<div class="empty">Can't reach the proposals yet. Check your connection.</div>`; }, 10000);
+  const user = await window.claude.use("user");
+  S.owner = (await user?.isOwner?.()) ?? false;
+  S.user = user; S.uid = (await user?.id?.()) ?? null; S.names = {};
+  S.loadNames = async () => {
+    const ids = [...new Set(S.docs.map((p) => p.decision?.by).filter((id) => id && !(id in S.names)))];
+    if (!ids.length || !user?.profiles) return;
+    const ps = await user.profiles(ids);
+    ids.forEach((id) => { S.names[id] = ps?.[id]?.name || "Someone"; });
+    if (!S.editing) renderDetail();
+  };
+  const pub = [], priv = [];
+  const merge = () => {
+    const extra = {};
+    priv.filter((d) => d.kind === "cites").forEach((d) => { extra[d.for] = d.citations.map((c) => ({ ...c, private: true })); });
+    S.docs = [...pub.map((d) => ({ ...d, _col: "proposals" })), ...priv.filter((d) => d.kind !== "cites").map((d) => ({ ...d, _col: "private", privateOnly: true }))]
+      .map((d) => extra[d.id] ? { ...d, citations: [...(d.citations || []), ...extra[d.id]], privateCount: 0 } : d)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    renderNav(); renderList(); if (!S.editing) renderDetail(); S.loadNames();
+  };
+  const sub = (col, arr) => db.collection(col).onSnapshot((snap) => {
+    if (!snap.metadata.fromCache) clearTimeout(t);
+    arr.length = 0; snap.docs.forEach((d) => arr.push({ id: d.id, ...d.data() })); merge();
+  }, (e) => { clearTimeout(t); if (col === "proposals") $("rows").innerHTML = `<div class="empty">Could not load proposals (${esc(e.code)}).</div>`; });
+  db.collection("runs").orderBy("date", "desc").limit(1).onSnapshot((snap) => {
+    const r = snap.docs[0]?.data(); if (!r) return;
+    const errs = (r.errors || []).length;
+    const el = $("lastrun");
+    el.textContent = `Last run: ${new Date(r.date).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${r.pushed ?? 0} pushed · ${r.proposed ?? 0} new` + (errs ? ` · ${errs} error${errs > 1 ? "s" : ""}: ${r.errors[0]}` : "");
+    el.className = "lastrun" + (errs ? " bad" : "");
+  }, () => {});
+  sub("proposals", pub);
+  if (S.owner) sub("private", priv);
+})();
+</script>
