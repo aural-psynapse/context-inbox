@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/banner.jpg" alt="Context Inbox. Chat in. Approved updates out." width="100%"></p>
+
 # context-inbox
 
 A framework for turning team messages into updates in your tools, with a person approving every change first.
@@ -113,3 +115,5 @@ The repo follows [semantic versioning](https://semver.org). Commit messages star
 ## License
 
 [MIT](LICENSE)
+
+The banner uses [Andromeda Galaxy (black background)](https://commons.wikimedia.org/wiki/File:Andromeda_Galaxy_(black_background).png) by Azcolvin429, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The banner image (`docs/banner.jpg`) is shared under the same license.
