@@ -26,7 +26,7 @@ Run the steps in order. Each ends on its done line.
    Done when the reader printed a count for every channel.
 3. **Propose.** Turn the new messages into items per [`RULES.md`](RULES.md) and the project's `RULES.md`. A message may feed only the destinations its channel lists in `feeds`. Write each item to `proposals`. An item whose `id` already exists gets updated, never duplicated.
    Done when every new message is cited by an item or plainly not about a client or lead.
-4. **Save cursors.** Write the updated cursors to `state/<source id>`. This comes last, so a run that fails earlier re-reads the same messages next time.
+4. **Save cursors.** Replace `state/<source id>` with a `set` whose data is exactly `{ "cursors": { "<channel id>": "<ts>" } }`, nothing wrapped around it. This comes last, so a run that fails earlier re-reads the same messages next time.
 5. **Log the run.** Write `runs/<UTC start time>`: `{ date, counts: { channel_id: n }, pushed: n, proposed: n, errors: [text] }`. Write it even when a step failed, with the error text.
 
 Nothing reaches a destination without `decision.status == "approved"`. Rejected and waiting items stay as they are.
