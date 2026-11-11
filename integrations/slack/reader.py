@@ -55,6 +55,7 @@ def make_call(token: str):
                 raise RuntimeError(f"{method}: {data.get('error')}")
             return data
         raise RuntimeError(f"{method}: rate limited {MAX_RETRIES} times")
+
     return call
 
 
@@ -132,20 +133,28 @@ def main() -> None:
                 link = f"{base}/archives/{cid}/p{m['ts'].replace('.', '')}"
                 if m.get("thread_ts") and m["thread_ts"] != m["ts"]:
                     link += f"?thread_ts={m['thread_ts']}&cid={cid}"
-                f.write(json.dumps({
-                    "source": source_id,
-                    "channel_id": cid,
-                    "private": bool(ch.get("private")),
-                    "feeds": ch.get("feeds", []),
-                    "ts": m["ts"],
-                    "thread_ts": m.get("thread_ts"),
-                    "date": time.strftime("%Y-%m-%d %H:%M", time.gmtime(float(m["ts"]))),
-                    "author_id": m.get("user") or m.get("bot_id", ""),
-                    "author": users.get(m.get("user", ""), m.get("username") or (m.get("bot_profile") or {}).get("name") or "?"),
-                    "text": text_of(m),
-                    "files": [x.get("name") for x in m.get("files", [])],
-                    "link": link,
-                }, ensure_ascii=False) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "source": source_id,
+                            "channel_id": cid,
+                            "private": bool(ch.get("private")),
+                            "feeds": ch.get("feeds", []),
+                            "ts": m["ts"],
+                            "thread_ts": m.get("thread_ts"),
+                            "date": time.strftime("%Y-%m-%d %H:%M", time.gmtime(float(m["ts"]))),
+                            "author_id": m.get("user") or m.get("bot_id", ""),
+                            "author": users.get(
+                                m.get("user", ""), m.get("username") or (m.get("bot_profile") or {}).get("name") or "?"
+                            ),
+                            "text": text_of(m),
+                            "files": [x.get("name") for x in m.get("files", [])],
+                            "link": link,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
         if uniq:
             newest = max(float(m["ts"]) for m in uniq)
             cursors[cid] = f"{min(newest, started - 1):.6f}"

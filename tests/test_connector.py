@@ -24,8 +24,11 @@ def check(cfg, files=()):
 
 
 def slack(channels, **extra):
-    return {"review_page": PAGE, "sources": [{"id": "s", "type": "slack", "reader": "slack", "channels": channels, **extra}],
-            "destinations": [{"id": "d", "type": "linear"}]}
+    return {
+        "review_page": PAGE,
+        "sources": [{"id": "s", "type": "slack", "reader": "slack", "channels": channels, **extra}],
+        "destinations": [{"id": "d", "type": "linear"}],
+    }
 
 
 class ConnectorTest(unittest.TestCase):
@@ -36,8 +39,13 @@ class ConnectorTest(unittest.TestCase):
         self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"], "tag": "x"}], base_url="https://x"))[0], 0)
 
     def test_own_reader_and_guide(self):
-        cfg = {"review_page": PAGE, "sources": [{"id": "s", "type": "forum", "reader": "r.py", "channels": [{"id": "support", "feeds": ["d"]}]}],
-               "destinations": [{"id": "d", "type": "notion", "guide": "./g.md"}]}
+        cfg = {
+            "review_page": PAGE,
+            "sources": [
+                {"id": "s", "type": "forum", "reader": "r.py", "channels": [{"id": "support", "feeds": ["d"]}]}
+            ],
+            "destinations": [{"id": "d", "type": "notion", "guide": "./g.md"}],
+        }
         self.assertEqual(check(cfg, ["r.py", "g.md"])[0], 0)
 
     def test_errors(self):
@@ -48,8 +56,14 @@ class ConnectorTest(unittest.TestCase):
             "repeated channel": slack([{"id": "C0123456789", "feeds": ["d"]}, {"id": "C0123456789", "feeds": ["d"]}]),
             "unknown destination": slack([{"id": "C0123456789", "feeds": ["x"]}]),
             "channel id list": slack([{"id": ["C1"], "feeds": ["d"]}]),
-            "placeholder page": {**slack([{"id": "C0123456789", "feeds": ["d"]}]), "review_page": "https://claude.ai/artifact/<id>"},
-            "path outside": {**slack([{"id": "C0123456789", "feeds": ["d"]}]), "destinations": [{"id": "d", "type": "x", "guide": "../../etc/hosts"}]},
+            "placeholder page": {
+                **slack([{"id": "C0123456789", "feeds": ["d"]}]),
+                "review_page": "https://claude.ai/artifact/<id>",
+            },
+            "path outside": {
+                **slack([{"id": "C0123456789", "feeds": ["d"]}]),
+                "destinations": [{"id": "d", "type": "x", "guide": "../../etc/hosts"}],
+            },
             "empty": {"review_page": PAGE, "sources": [], "destinations": []},
             "not an object": "[1, 2]",
         }

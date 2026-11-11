@@ -27,7 +27,15 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9_.~:@+-]+$")
 SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
 TOP_KEYS = {"project", "review_page", "routine", "sources", "destinations"}
-TYPOS = {"feed": "feeds", "channel": "channels", "destination": "destinations", "source": "sources", "guides": "guide", "readers": "reader", "privat": "private"}
+TYPOS = {
+    "feed": "feeds",
+    "channel": "channels",
+    "destination": "destinations",
+    "source": "sources",
+    "guides": "guide",
+    "readers": "reader",
+    "privat": "private",
+}
 DEST_KEYS = {"id", "type", "guide"}  # other keys are read by the guide
 
 
@@ -154,7 +162,7 @@ def check(project: Path) -> dict:
         cids: set = set()
         for j, ch in enumerate(channels):
             if not isinstance(ch, dict):
-                errors.append(f"{label}: channels[{j}] must be an object like {{\"id\": ..., \"feeds\": [...]}}")
+                errors.append(f'{label}: channels[{j}] must be an object like {{"id": ..., "feeds": [...]}}')
                 continue
             cid = ch.get("id")
             if not isinstance(cid, str):

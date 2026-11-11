@@ -23,9 +23,27 @@ class HookTest(unittest.TestCase):
     def test_cases(self):
         cases = [
             ("write without marker", 2, {"tool_name": "mcp__L__save_issue", "tool_input": {"description": "x"}}),
-            ("write with marker", 0, {"tool_name": "mcp__L__save_issue", "tool_input": {"description": "x\nctx: a--1"}}),
-            ("field-only update", 0, {"tool_name": "mcp__L__save_issue", "tool_input": {"id": "ABC-1", "state": "Done"}}),
-            ("text under another key", 2, {"tool_name": "mcp__A__upsert-record", "tool_input": {"id": "r1", "values": {"notes": "Customer says the renewal slips to March because legal is slow"}}}),
+            (
+                "write with marker",
+                0,
+                {"tool_name": "mcp__L__save_issue", "tool_input": {"description": "x\nctx: a--1"}},
+            ),
+            (
+                "field-only update",
+                0,
+                {"tool_name": "mcp__L__save_issue", "tool_input": {"id": "ABC-1", "state": "Done"}},
+            ),
+            (
+                "text under another key",
+                2,
+                {
+                    "tool_name": "mcp__A__upsert-record",
+                    "tool_input": {
+                        "id": "r1",
+                        "values": {"notes": "Customer says the renewal slips to March because legal is slow"},
+                    },
+                },
+            ),
             ("list entry", 2, {"tool_name": "mcp__A__add-record-to-list", "tool_input": {}}),
             ("chat post", 2, {"tool_name": "mcp__S__slack_send_message", "tool_input": {"text": "ctx: a"}}),
             ("git -C commit", 2, bash("git -C ../docs commit -m 'docs: x'", REPO)),

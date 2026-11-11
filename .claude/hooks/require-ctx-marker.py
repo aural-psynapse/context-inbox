@@ -41,6 +41,8 @@ def has_text(v) -> bool:
     if isinstance(v, list):
         return any(has_text(x) for x in v)
     return False
+
+
 GIT_COMMIT = re.compile(r"\bgit(\s+(-c\s+\S+|-C\s+\S+|--[\w-]+(=\S+)?))*\s+commit\b")
 CHAT_SEND = re.compile(r"(send_message|schedule_message|send_message_draft|chat_postMessage)$")
 
@@ -58,14 +60,20 @@ def check(call: dict) -> None:
             block(f"{name}: a run never posts to chat.")
         field_only = isinstance(args, dict) and args.get("id") and not (TEXT_KEYS & set(args)) and not has_text(args)
         if WRITE_TOOLS.search(name) and not field_only and "ctx: " not in json.dumps(args, ensure_ascii=False):
-            block(f"{name}: a run writes only approved items, and each carries `ctx: <item id>`. Add the marker or skip the write.")
+            block(
+                f"{name}: a run writes only approved items, and each carries `ctx: <item id>`. "
+                "Add the marker or skip the write."
+            )
         return
     if name != "Bash":
         return
     cmd = args.get("command", "")
     here = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR", ""))
     outside = os.path.realpath(call.get("cwd", "")) != here or re.search(r"\bcd\s|\bgit\s+(\S+\s+)*-C\s", cmd)
-    gh_write = re.search(r"\bgh\s+(issue|pr)\s+(create|comment|edit)\b|\bgh\s+api\b[^|;&\n]*(-X\s*(POST|PATCH|PUT)|--method\s+(POST|PATCH|PUT)|\s-f\s)", cmd)
+    gh_write = re.search(
+        r"\bgh\s+(issue|pr)\s+(create|comment|edit)\b|\bgh\s+api\b[^|;&\n]*(-X\s*(POST|PATCH|PUT)|--method\s+(POST|PATCH|PUT)|\s-f\s)",
+        cmd,
+    )
     if gh_write and (outside or re.search(r"\s(-R|--repo)[\s=]|\bgh\s+api\b", cmd)) and "ctx: " not in cmd:
         block("gh: a write needs `ctx: <item id>` in its body.")
     if not outside:
