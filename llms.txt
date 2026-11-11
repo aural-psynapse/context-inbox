@@ -2,21 +2,31 @@
 
 > A framework for turning messages from any source into cited changes in any destination. An agent drafts each change, a person approves it on a claude.ai review page, and the next run writes only approved changes.
 
-Each project keeps a folder in a separate private repo: `config.json`, `RULES.md`, a reader per source and a guide per destination. The config maps channels to destinations.
+Each project keeps a folder in a separate private repo with `config.json` and `RULES.md`. The config maps channels to destinations and names a reader per source and a guide per destination.
 
 ## Start here
 
-- [AGENTS.md](AGENTS.md): set up a project, the reader and guide formats, and the daily run.
+- [AGENTS.md](AGENTS.md): setup, reader and guide formats, and the daily run.
 - [RULES.md](RULES.md): what a proposal is, how to write it, and its JSON shape.
+- [connector/check.py](connector/check.py): checks a projects repo and prints each reader command and guide path.
 
-## Example project folder
+## Integrations
 
-- [example/config.json](example/config.json): one Slack source feeding one Linear destination.
-- [example/RULES.md](example/RULES.md): people, what counts, what goes where.
-- [example/readers/slack.py](example/readers/slack.py): Slack reader, thread replies included.
-- [example/guides/linear.md](example/guides/linear.md): how to write to Linear.
+- [integrations/slack/reader.py](integrations/slack/reader.py): Slack reader, thread replies included.
+- [integrations/linear/guide.md](integrations/linear/guide.md): Linear issues and comments.
+- [integrations/attio/guide.md](integrations/attio/guide.md): Attio deal notes and tasks.
+- [integrations/github/guide.md](integrations/github/guide.md): one commit per item to a repo.
+- [integrations/recipes/](integrations/recipes/): Slack to Linear, Slack to Attio, Slack to GitHub.
+
+## Run
+
+- [runner/prompt.txt](runner/prompt.txt): prompt for a scheduled run.
+- [runner/run.sh](runner/run.sh): run once on this machine.
+- [.claude/skills/](.claude/skills/): setup and run-now skills.
+- [.claude/hooks/require-ctx-marker.py](.claude/hooks/require-ctx-marker.py): refuses destination writes without an approved item's marker.
 
 ## Optional
 
+- [projects-example/](projects-example/): a projects repo with one project.
+- [ui/review.html](ui/review.html): the review page and run log.
 - [README.md](README.md): overview and manual setup for people.
-- [review.html](review.html): the review page.

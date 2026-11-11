@@ -1,0 +1,21 @@
+{
+  "project": "acme",
+  "review_page": "https://claude.ai/artifact/<id>",
+  "sources": [
+    {
+      "id": "slack-acme",
+      "type": "slack",
+      "reader": "slack",
+      "secret": "SLACK_TOKEN_ACME",
+      "channels": [
+        { "id": "C0123456789", "feeds": ["linear-acme"] },
+        { "id": "C0234567890", "feeds": ["attio-acme"] },
+        { "id": "D0123456789", "feeds": ["attio-acme"], "private": true }
+      ]
+    }
+  ],
+  "destinations": [
+    { "id": "linear-acme", "type": "linear", "guide": "linear", "team": "ACM" },
+    { "id": "attio-acme", "type": "attio", "guide": "attio", "workspace": "acme" }
+  ]
+}

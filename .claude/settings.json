@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*|Bash",
+        "hooks": [ { "type": "command", "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/require-ctx-marker.py\"; [ ! -f \"$f\" ] || python3 \"$f\"" } ]
+      }
+    ]
+  }
+}

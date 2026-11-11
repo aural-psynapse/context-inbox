@@ -87,7 +87,8 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 .edited { font-size: 12px; color: var(--fg-2); }
 .msg { font-size: 13px; font-weight: 500; }
 .msg.ok { color: var(--success); } .msg.bad { color: var(--danger); }
-.lastrun { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.lastrun { cursor: pointer; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.lastrun:hover { border-color: var(--fg-2); } .lastrun.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .lastrun > div { padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
 .lastrun > .lr-wide { grid-column: 1 / -1; }
 .lastrun > div + div:not(.lr-wide) { border-top: 1px solid var(--border); }
@@ -137,7 +138,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 </div>
 
 <script>
-const S = { docs: [], status: "pending", target: "all", cur: null, editing: false, db: null, draft: {}, saving: null, err: null };
+const S = { view: "items", runs: [], run: null, docs: [], status: "pending", target: "all", cur: null, editing: false, db: null, draft: {}, saving: null, err: null };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TYPE_COLOR = { linear: "var(--t-linear)", attio: "var(--t-attio)", github: "var(--t-sa)" };
@@ -162,9 +163,10 @@ function icon(p) {
 const tag = (t) => { const [n, c] = tinfo(t); return `<span class="tag"><span class="dot" style="background:${c}"></span>${esc(n)}</span>`; };
 
 function renderNav() {
+  $("lastrun").classList.toggle("on", S.view === "runs");
   const ps = S.docs;
-  const sBtn = ([k, l]) => `<button class="nav${S.status === k ? " on" : ""}" data-status="${k}">${l}<span class="n">${ps.filter((p) => inStatus(p, k)).length}</span></button>`;
-  const tBtn = (t) => `<button class="nav${S.target === t ? " on" : ""}" data-target="${t}">${t === "all" ? "Every place" : `<span class="dot" style="background:${tinfo(t)[1]}"></span>${esc(t)}`}<span class="n">${ps.filter((p) => (t === "all" || place(p) === t) && inStatus(p, S.status)).length}</span></button>`;
+  const sBtn = ([k, l]) => `<button class="nav${S.view === "items" && S.status === k ? " on" : ""}" data-status="${k}">${l}<span class="n">${ps.filter((p) => inStatus(p, k)).length}</span></button>`;
+  const tBtn = (t) => `<button class="nav${S.view === "items" && S.target === t ? " on" : ""}" data-target="${t}">${t === "all" ? "Every place" : `<span class="dot" style="background:${tinfo(t)[1]}"></span>${esc(t)}`}<span class="n">${ps.filter((p) => (t === "all" || place(p) === t) && inStatus(p, S.status)).length}</span></button>`;
   $("g-status").innerHTML = "<h3>Inbox</h3>" + statuses().map(sBtn).join("");
   $("g-target").innerHTML = "<h3>Where it goes</h3>" + ["all", ...places()].map(tBtn).join("");
   $("mfilter").innerHTML = statuses().map(sBtn).join("");
@@ -233,7 +235,30 @@ function noteCtl(p, label) {
   return (saved ? `<button class="btn saved" disabled>Saved ✓</button>` : `<button class="btn" disabled>${label}</button>`) + err;
 }
 function refreshCtl() { const el = $("notectl"); const p = S.docs.find((x) => x.id === S.cur); if (el && p) el.innerHTML = noteCtl(p, el.dataset.label); }
-function render() { renderNav(); renderList(); renderDetail(); }
+const when = (d) => new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const runIcon = (r) => (r.errors || []).length
+  ? `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--danger)"/><path d="M4.8 4.8l4.4 4.4M9.2 4.8l-4.4 4.4" stroke="var(--panel)" stroke-width="1.6" stroke-linecap="round"/></svg>`
+  : `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--success)"/><path d="M4.2 7.2l1.9 1.9 3.7-4" stroke="var(--panel)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function renderRuns() {
+  $("lh").textContent = "Run log"; $("lhn").textContent = S.runs.length;
+  if (!S.runs.find((r) => r.id === S.run)) S.run = S.runs[0]?.id ?? null;
+  $("rows").innerHTML = S.runs.length ? S.runs.map((r) => `<div class="row${r.id === S.run ? " on" : ""}" data-run="${esc(r.id)}" tabindex="0">
+      ${runIcon(r)}<div class="title">${esc(when(r.date))}</div><div class="date">${(r.errors || []).length ? "Failed" : ""}</div>
+      <div class="sub"><span>${esc(String(r.pushed ?? 0))} pushed, ${esc(String(r.proposed ?? 0))} new</span></div></div>`).join("")
+    : `<div class="empty">No runs yet.</div>`;
+  const r = S.runs.find((x) => x.id === S.run);
+  if (!r) { $("detail").innerHTML = `<div class="empty"></div>`; return; }
+  const counts = Object.entries(r.counts || {});
+  const errs = r.errors || [];
+  $("detail").innerHTML = `<div class="d-wrap">
+    <button class="btn back" data-act="back">← Run log</button>
+    <h1>Run on ${esc(when(r.date))}</h1>
+    <div class="section"><dl class="props"><dt>Pushed</dt><dd>${esc(String(r.pushed ?? 0))}</dd><dt>New items</dt><dd>${esc(String(r.proposed ?? 0))}</dd></dl></div>
+    <div class="section"><h2>New messages read</h2>${counts.length ? `<dl class="props">${counts.map(([k, v]) => `<dt><code>${esc(k)}</code></dt><dd>${esc(String(v))}</dd>`).join("")}</dl>` : `<div class="edited">None</div>`}</div>
+    <div class="section"><h2>Errors</h2>${errs.length ? errs.map((e) => `<div class="msg bad">${esc(String(e))}</div>`).join("") : `<div class="edited">None</div>`}</div>
+  </div>`;
+}
+function render() { renderNav(); if (S.view === "runs") { renderRuns(); return; } renderList(); renderDetail(); }
 
 async function decide(patch, advance) {
   const p = S.docs.find((x) => x.id === S.cur); if (!p) return;
@@ -264,7 +289,10 @@ function act(a) {
 
 document.onclick = (e) => {
   const n = e.target.closest(".nav");
-  if (n) { if (n.dataset.status) S.status = n.dataset.status; if (n.dataset.target) S.target = n.dataset.target; S.cur = null; S.editing = false; render(); return; }
+  if (n) { S.view = "items"; if (n.dataset.status) S.status = n.dataset.status; if (n.dataset.target) S.target = n.dataset.target; S.cur = null; S.editing = false; render(); return; }
+  if (e.target.closest("#lastrun")) { S.view = "runs"; S.run = null; render(); return; }
+  const rr = e.target.closest("[data-run]");
+  if (rr) { S.run = rr.dataset.run; $("app").classList.add("show-detail"); renderRuns(); return; }
   const r = e.target.closest(".row");
   if (r) { S.cur = r.dataset.id; S.editing = false; $("app").classList.add("show-detail"); renderList(); renderDetail(); return; }
   const b = e.target.closest("[data-act]"); if (b && !b.disabled) act(b.dataset.act);
@@ -273,6 +301,7 @@ document.oninput = (e) => { if (e.target.id === "note" && S.cur) { S.draft[S.cur
 document.onkeydown = (e) => {
   if (e.target.matches("textarea, input") || e.metaKey || e.ctrlKey || e.altKey) { if (e.key === "Escape") e.target.blur(); return; }
   const k = e.key.toLowerCase();
+  if (S.view === "runs") return;
   if (k === "j" || e.key === "ArrowDown") { e.preventDefault(); move(1); }
   else if (k === "k" || e.key === "ArrowUp") { e.preventDefault(); move(-1); }
   else if (k === "a") act("approve"); else if (k === "r") act("reject");
@@ -301,27 +330,28 @@ document.onkeydown = (e) => {
     S.docs = [...pub.map((d) => ({ ...d, _col: "proposals" })), ...priv.filter((d) => d.kind !== "cites").map((d) => ({ ...d, _col: "private", privateOnly: true }))]
       .map((d) => extra[d.id] ? { ...d, citations: [...(d.citations || []), ...extra[d.id]], privateCount: 0 } : d)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    renderNav(); renderList(); if (!S.editing) renderDetail(); S.loadNames();
+    renderNav(); if (S.view === "runs") renderRuns(); else { renderList(); if (!S.editing) renderDetail(); } S.loadNames();
   };
   const sub = (col, arr) => db.collection(col).onSnapshot((snap) => {
     if (!snap.metadata.fromCache) clearTimeout(t);
     arr.length = 0; snap.docs.forEach((d) => arr.push({ id: d.id, ...d.data() })); merge();
   }, (e) => { clearTimeout(t); if (col === "proposals") $("rows").innerHTML = `<div class="empty">Could not load proposals (${esc(e.code)}).</div>`; });
-  db.collection("runs").orderBy("date", "desc").limit(1).onSnapshot((snap) => {
-    const r = snap.docs[0]?.data(); if (!r) return;
+  db.collection("runs").orderBy("date", "desc").limit(30).onSnapshot((snap) => {
+    S.runs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (S.view === "runs") render();
+    const r = S.runs[0]; if (!r) return;
     const errs = (r.errors || []).length;
     const el = $("lastrun");
-    const when = new Date(r.date).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
     const mins = Math.max(0, Math.round((Date.now() - new Date(r.date)) / 60000));
     const unit = (n, w) => `${n} ${w}${n === 1 ? "" : "s"} ago`;
     const ago = mins < 1 ? "just now" : mins < 60 ? unit(mins, "minute") : mins < 1440 ? unit(Math.round(mins / 60), "hour") : unit(Math.round(mins / 1440), "day");
-    el.title = when;
+    el.title = "Run log";
     const num = (n) => esc(Number(n ?? 0).toLocaleString("en-US"));
     el.innerHTML = `<div class="lr-wide"><span>${errs ? "Sync failed" : "Synced"}</span><b>${esc(ago)}</b></div>`
       + `<div><span>Pushed</span><b>${num(r.pushed)}</b></div>`
       + `<div><span>New</span><b>${num(r.proposed)}</b></div>`
       + (errs ? `<div class="lr-wide lr-err">${errs} error${errs > 1 ? "s" : ""}: ${esc(String(r.errors[0]))}</div>` : "");
-    el.className = "lastrun" + (errs ? " bad" : "");
+    el.className = "lastrun" + (errs ? " bad" : "") + (S.view === "runs" ? " on" : "");
   }, () => {});
   sub("proposals", pub);
 })();
