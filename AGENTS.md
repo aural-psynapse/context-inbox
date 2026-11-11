@@ -21,7 +21,7 @@ Run the steps in order. Each ends on its done line.
    1. Follow the guide for the destination's type in `destinations/<type>.md`.
    2. Search the destination for the item's `id` first. Found means an earlier run already wrote it: skip the write.
    3. Otherwise write it, using `decision.body` when present, else `body`, and carry the item's `id` in the written record as the guide says. Read `decision.comment` first: it may change what to write.
-   4. Save `pushed: { at, url }` on that item right away.
+   4. Save `pushed: { at, url }` on that item right away, in its own write, before touching the next item.
    Done when every approved item carries `pushed`.
 2. **Read new messages.** For each source, load its cursors from `state/<source id>` into a local file, then run the reader for its type in `scripts/sources/<type>.py` (usage at the top of each script). Keep the updated cursor file; do not save it yet.
    Done when the reader printed a count for every channel.
