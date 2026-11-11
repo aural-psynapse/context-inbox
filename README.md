@@ -20,6 +20,26 @@ sources ──► readers ──► agent drafts items ──► review page ─
 - **Incremental.** Readers keep one cursor per channel and return only newer messages, including late replies in old threads.
 - **Private chats stay private.** For channels flagged `private`, the agent takes only messages that matter to the destinations. It skips the rest without quoting or mentioning it.
 
+## Review page
+
+Items wait here until someone approves, rejects or edits them. Every item shows the exact text it will write and the messages it came from.
+
+![Inbox with items to review](docs/screenshots/inbox.png)
+
+When the agent is unsure, it asks. Your answer goes into the next run.
+
+![An item asking a question](docs/screenshots/answer.png)
+
+Written items show a link to the record and can no longer change.
+
+![A written item with its link](docs/screenshots/written.png)
+
+The "Synced" box opens the run log: what each run read, wrote and proposed, and any errors.
+
+![Run log](docs/screenshots/runs.png)
+
+The screenshots use the made-up company Acme.
+
 ## Set it up with an agent
 
 Point a coding agent with tool access at this repo and tell it what to connect:
