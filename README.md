@@ -89,8 +89,8 @@ Items wait here until someone decides. You answer the agent's questions, follow 
 
 | | Built in | Recipes |
 |---|---|---|
-| **Sources** | [Slack](integrations/slack/reader.py) | [Slack to Linear](integrations/recipes/slack-to-linear.md) |
-| **Destinations** | [Linear](integrations/linear/guide.md), [Attio](integrations/attio/guide.md), [GitHub](integrations/github/guide.md) | [Slack to Attio](integrations/recipes/slack-to-attio.md), [Slack to GitHub](integrations/recipes/slack-to-github.md) |
+| **Sources** | [Slack](integrations/slack/reader.py) | [Slack to Linear](integrations/recipes.md) |
+| **Destinations** | [Linear](integrations/linear/guide.md), [Attio](integrations/attio/guide.md), [GitHub](integrations/github/guide.md) | [Slack to Attio](integrations/recipes.md), [Slack to GitHub](integrations/recipes.md) |
 
 **Adding a source** takes a small reader program, or plain instructions telling the agent to read through a connector it already has, such as Gmail. **Adding a destination** takes a guide of a few lines. Both live in your project folder. The formats are in [AGENTS.md](AGENTS.md).
 

@@ -16,7 +16,7 @@ Each project keeps a folder in a separate private repo with `config.json` and `R
 - [integrations/linear/guide.md](integrations/linear/guide.md): Linear issues and comments.
 - [integrations/attio/guide.md](integrations/attio/guide.md): Attio deal notes and tasks.
 - [integrations/github/guide.md](integrations/github/guide.md): one commit per item to a repo.
-- [integrations/recipes/](integrations/recipes/): Slack to Linear, Slack to Attio, Slack to GitHub.
+- [integrations/recipes.md](integrations/recipes.md): Slack to Linear, Slack to Attio, Slack to GitHub.
 
 ## Run
 

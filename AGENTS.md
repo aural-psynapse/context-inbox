@@ -22,7 +22,7 @@ You have two jobs here. **Set up a project** once, then do the **daily run** on 
 Ask the person only what you cannot look up. Done when the first run's items show on the review page and the person has seen them.
 
 1. **Ask what to connect.** Which sources and which channels in them, and which destinations. Look up exact channel IDs, team keys and repo names yourself. Config takes exact, case-sensitive IDs only, never display names.
-2. **Make the project folder** in the person's private projects repo, copying [`projects-example/acme/`](projects-example/acme/) and the closest recipe in [`integrations/recipes/`](integrations/recipes/). In `RULES.md`, list people by their source user ID, say what counts, and say what goes to which destination.
+2. **Make the project folder** in the person's private projects repo, copying [`projects-example/acme/`](projects-example/acme/) and the closest recipe in [`integrations/recipes.md`](integrations/recipes.md). In `RULES.md`, list people by their source user ID, say what counts, and say what goes to which destination.
 3. **Wire each source** with a reader (see Sources below). Use one from `integrations/` by name when it fits. Test it on one channel with `--only <channel id>` and a cursor file holding `{}`. Check that every line has every field of the message format.
 4. **Wire each destination** with a guide (see Destinations below). Use one from `integrations/` by name when it fits. Confirm you can read the destination with your tools.
 5. **Store tokens outside git.** Put each source token in the env var named by `secret`. In a cloud environment, store it as a network secret for the API's host and leave the env var unset.
@@ -55,12 +55,20 @@ A message edited after it was read is not read again. Each line:
 
 ## Destinations
 
-Each destination in config sets `guide`: an integration name such as `attio` (reads `integrations/attio/guide.md`), or a path to a Markdown file in the project folder. A guide says:
+Each destination in config sets `guide`: an integration name such as `attio` (reads `integrations/attio/guide.md`), or a path to a Markdown file in the project folder.
+
+Every destination follows the same three rules, so a guide does not repeat them:
+
+- **Marker.** Each written record carries `ctx: <item id>`. A change with no text of its own, such as a new state or stage, goes with a note or comment that carries it.
+- **Search first.** Before writing, search the destination for the marker. A hit means an earlier run wrote it: skip the write.
+- **Link.** Save the record's URL as `pushed.url`.
+
+A guide adds only what is specific to the tool:
 
 1. Which connector or CLI writes, and which config keys pick the workspace, team or repo.
 2. How each `action` maps to a record.
-3. Where `ctx: <item id>` goes in the written record, and how to search for it.
-4. What URL to save as `pushed.url`.
+3. Where the marker goes, and where to search for it.
+4. Which URL counts as the record's URL.
 
 ## Review page collections
 

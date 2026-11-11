@@ -24,4 +24,4 @@ One line, no trailers.
 
 ## Adding an integration
 
-A source needs a reader and a destination needs a guide. [AGENTS.md](AGENTS.md) gives both formats. Put them in `integrations/<name>/`, add a recipe to `integrations/recipes/`, and list them in the README.
+A source needs a reader and a destination needs a guide. [AGENTS.md](AGENTS.md) gives both formats. Put them in `integrations/<name>/`, add a recipe to `integrations/recipes.md`, and list them in the README.
