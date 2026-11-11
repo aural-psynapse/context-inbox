@@ -5,7 +5,10 @@
     ".": {
       "release-type": "simple",
       "include-v-in-tag": true,
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "README.md"
+      ]
     }
   }
 }

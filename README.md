@@ -1,82 +1,127 @@
 <p align="center"><img src="docs/banner.jpg" alt="Context Inbox. Chat in. Approved updates out." width="100%"></p>
 
-# context-inbox
+<p align="center">
+  <b>Turn team chat into updates in your tracker, CRM and docs.<br>An agent drafts every change. A person approves it first.</b>
+</p>
 
-A framework for turning team messages into updates in your tools, with a person approving every change first.
+<p align="center">
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#integrations">Integrations</a> ·
+  <a href="AGENTS.md">Agent instructions</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
-An agent reads new messages from your sources, drafts the changes they imply for your destinations, and puts each draft on a review page with the exact text and the messages it came from. You approve, reject or edit it there. The next run writes only what you approved.
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.5.0-6e7bff" alt="Version"> <!-- x-release-please-version -->
+  <img src="https://img.shields.io/badge/license-MIT-3fb950" alt="MIT license">
+  <img src="https://img.shields.io/badge/runs%20on-Claude%20Code-d97757" alt="Runs on Claude Code">
+  <img src="https://img.shields.io/badge/python-3.9%2B-3776ab" alt="Python 3.9+">
+</p>
 
-You bring the sources, the destinations and the rules for what goes where. The framework brings the run, the review page, and the guarantees below.
+---
+
+Decisions, bug reports and deal updates live in chat. Your tracker, CRM and docs fall behind. Context Inbox carries the updates over, and writes nothing without a person's approval.
+
+Every day an agent reads the new messages, drafts the changes they imply, and puts each draft on a review page with the exact text and the messages it came from. You approve, reject or edit. The next run writes only what you approved.
+
+## Highlights
+
+- **You approve every write.** Nothing reaches a destination until someone approves it on the review page.
+- **Every fact is cited.** Each draft quotes the messages behind it, with author, date and a link to the message.
+- **Runs twice, writes once.** Each written record carries a `ctx:` marker, and the agent checks for it before writing.
+- **Nothing gets missed.** Readers keep a cursor per channel and pick up late replies in threads of any age.
+- **Private chats stay private.** In channels marked private, the agent takes only work messages and skips the rest.
+- **Any source, any destination.** Slack, Linear, Attio and GitHub come built in. An agent adds a new one by writing a short reader or guide.
+- **Agent first.** A coding agent sets the whole thing up from [AGENTS.md](AGENTS.md). Manual setup works too.
+
+## Quickstart
+
+Give a coding agent this repo and tell it what to connect:
+
+```text
+Set up context-inbox for project "acme" following AGENTS.md.
+Read #sales and #support in our Slack. Write deals to Attio and bugs to Linear.
+```
+
+The agent finds the channel IDs, picks a reader and a guide for each tool, checks the config, publishes the review page and runs once. Then it offers to schedule a daily run.
+
+Prefer to do it yourself? See [Manual setup](#manual-setup).
 
 ## How it works
 
+```text
+ Slack, email, ...          review page                 Linear, Attio, GitHub, ...
+┌──────────────┐   draft   ┌──────────────┐   approved   ┌──────────────┐
+│ new messages │ ────────▶ │  you decide  │ ───────────▶ │ next run     │
+│ since cursor │  + quotes │ ✓  ✗  edit   │              │ writes once  │
+└──────────────┘           └──────────────┘              └──────────────┘
 ```
-sources ──► readers ──► agent drafts items ──► review page ──► you approve
-                                                                  │
-          destinations ◄── next run writes approved items ◄───────┘
-```
 
-- **Cited.** Each item quotes the messages behind it, with author, date and link. A fact with no quote stays out.
-- **Approved first.** The agent writes to a destination only for items marked approved on the review page.
-- **Written once.** Each written record carries `ctx: <item id>`. The agent searches for that marker before writing, so a rerun never writes twice.
-- **Incremental.** Readers keep one cursor per channel and return only newer messages, including late replies in old threads.
-- **Private chats stay private.** For channels flagged `private`, the agent takes only messages that matter to the destinations. It skips the rest without quoting or mentioning it.
+1. A **reader** fetches messages newer than each channel's cursor.
+2. The agent drafts **items** by the rules in your project's `RULES.md`, each with quotes and links.
+3. You **review** them. When the agent is unsure, it asks a question, and your answer goes into the next run.
+4. The next run **writes** the approved items, following the destination's **guide**, and saves a link to each record.
 
-## Review page
+## The review page
 
-Items wait here until someone approves, rejects or edits them. Every item shows the exact text it will write and the messages it came from.
+Items wait here until someone decides. Each shows the exact text it will write and the messages it came from.
 
 ![Inbox with items to review](docs/screenshots/inbox.png)
 
-When the agent is unsure, it asks. Your answer goes into the next run.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/answer.png" alt="An item asking a question"><br><sub>The agent asks when it is unsure.</sub></td>
+    <td width="50%"><img src="docs/screenshots/written.png" alt="A written item with its link"><br><sub>Written items link to the record and lock.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/runs.png" alt="Run log"><br><sub>The run log shows what each run read, wrote and proposed.</sub></td>
+    <td width="50%"><sub>Keys: <kbd>J</kbd> <kbd>K</kbd> move, <kbd>A</kbd> approve, <kbd>R</kbd> reject, <kbd>E</kbd> edit, <kbd>U</kbd> undo.<br><br>The screenshots use the made-up company Acme.</sub></td>
+  </tr>
+</table>
 
-![An item asking a question](docs/screenshots/answer.png)
+## Integrations
 
-Written items show a link to the record and can no longer change.
+| | Built in | Recipes |
+|---|---|---|
+| **Sources** | [Slack](integrations/slack/reader.py) | [Slack to Linear](integrations/recipes/slack-to-linear.md) |
+| **Destinations** | [Linear](integrations/linear/guide.md), [Attio](integrations/attio/guide.md), [GitHub](integrations/github/guide.md) | [Slack to Attio](integrations/recipes/slack-to-attio.md), [Slack to GitHub](integrations/recipes/slack-to-github.md) |
 
-![A written item with its link](docs/screenshots/written.png)
+**Adding a source** takes a small reader program, or plain instructions telling the agent to read through a connector it already has, such as Gmail. **Adding a destination** takes a guide of a few lines. Both live in your project folder. The formats are in [AGENTS.md](AGENTS.md).
 
-The "Synced" box opens the run log: what each run read, wrote and proposed, and any errors.
-
-![Run log](docs/screenshots/runs.png)
-
-The screenshots use the made-up company Acme.
-
-## Set it up with an agent
-
-Point a coding agent with tool access at this repo and tell it what to connect:
-
-```
-Set up context-inbox for project "acme" following AGENTS.md.
-Read #sales and #support in our Slack. Write deals to HubSpot and bugs to Linear.
-```
-
-The agent looks up channel IDs, picks or writes a reader for each source and a guide for each destination, publishes the review page and runs once. [AGENTS.md](AGENTS.md) has its steps.
-
-## What is in the box
+## What's inside
 
 | Part | What it does |
 |---|---|
-| [Connector](connector/check.py) | Finds your projects repo, checks every config, and tells the run which reader and guide to use. A config error stops the run before it reads any message. The run logs the errors and writes nothing else. |
-| [Integrations](integrations/) | Slack reader. Linear, Attio and GitHub guides. Recipes such as [Slack to Attio](integrations/recipes/slack-to-attio.md). |
-| [Review page](ui/review.html) | Items to approve, reject or edit, filtered by status and destination. Last sync, and a run log with counts and errors per run. Keys: J, K, A, R, E, U. |
-| [Runner](runner/) | The scheduled-run prompt. `fire.sh` starts the cloud run from any agent or script. `run.sh` runs once on your machine, with you watching. |
+| [Connector](connector/check.py) | Finds your projects repo and checks every config. A mistake stops the run before it reads a message. |
+| [Review page](ui/review.html) | Approve, reject, edit and answer. Filters by status and destination. Run log. |
+| [Runner](runner/) | The daily prompt. [`fire.sh`](runner/fire.sh) starts a run from any agent or script. [`run.sh`](runner/run.sh) runs once while you watch. |
 | [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
-| [Skills and hook](.claude/) | `context-inbox-setup` and `context-inbox-run` skills. A hook that refuses the connector writes it lists, commits and GitHub writes when they lack a `ctx:` marker, and any chat post. It checks the marker is there; the run checks approval. |
-| [Example projects repo](projects-example/) | One project, Acme: Slack to Linear and Slack to Attio. |
+| [Skills and hook](.claude/) | Claude Code skills for setup and run-now. A hook that refuses destination writes without a `ctx:` marker, and any chat post. |
+| [Example projects repo](projects-example/) | Acme: Slack to Linear and Slack to Attio. |
 
-A source needs a reader and a destination needs a guide. Use one from `integrations/` by name, or let the agent write one into your project folder. Routing lives in config: each channel lists the destinations it `feeds`.
+## Manual setup
 
-## Set it up by hand
+You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.9+.
 
-You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.9+ for the connector and Slack reader.
-
-1. **Make a project folder** in a private repo of its own: copy of [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then run `python3 connector/check.py <projects repo> <project>`.
-2. **Publish [`ui/review.html`](ui/review.html)** as a claude.ai artifact with capabilities `{ "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }`. Put its URL in `review_page`. Share it with your approvers as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
+1. **Make a project folder** in a private repo of its own, starting from [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then check them:
+   ```sh
+   python3 connector/check.py <projects repo> <project>
+   ```
+2. **Publish [`ui/review.html`](ui/review.html)** as a claude.ai artifact with these capabilities, and put its URL in `review_page`:
+   ```json
+   { "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }
+   ```
+   Share it with your approvers as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
-4. **Run it** every day: save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code scheduled task with a cron schedule. Start it at any other time with `runner/fire.sh <projects repo> <project>`, or with `runner/run.sh <projects repo> <project>` to watch it run. [`runner/README.md`](runner/README.md) has the details.
+4. **Schedule it.** Save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code scheduled task with a daily cron. Start extra runs with:
+   ```sh
+   runner/fire.sh <projects repo> <project>   # no person needed
+   runner/run.sh  <projects repo> <project>   # watch it run
+   ```
 
-## Config
+<details>
+<summary><b>Config reference</b></summary>
 
 | Key | Meaning |
 |---|---|
@@ -93,24 +138,36 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 | `destinations[].type` | Name of the tool. The review page colours items by it. |
 | `destinations[].guide` | Integration name, such as `attio`, or a path inside the project folder. |
 
-Other keys on a destination, such as `team` or `repo`, are read by its guide. Other keys on a source or a channel, such as a forum address, are read by its reader. Keys are case-sensitive.
+Other keys on a destination, such as `team` or `repo`, are read by its guide. Other keys on a source or a channel are read by its reader. Keys are case-sensitive.
 
-## Repo layout
+</details>
 
-```
+<details>
+<summary><b>Repo layout</b></summary>
+
+```text
 AGENTS.md                instructions for the agent: setup and daily run
 RULES.md                 what a proposal is and its JSON shape
 connector/check.py       finds and checks project configs
 integrations/            readers, guides, recipes
 ui/review.html           review page and run log
-runner/                  scheduled-run prompt and local run script
-.claude/                 skills and the write-blocking hook
+runner/                  daily prompt, fire.sh, run.sh
+.claude/                 skills and the write check
 projects-example/        a projects repo to copy
+scripts/release.sh       makes a release
 ```
 
-## Versioning
+</details>
 
-The repo follows [semantic versioning](https://semver.org). Commit messages start with a type, as [Conventional Commits](https://www.conventionalcommits.org) describes: `fix:` for a bug fix, `feat:` for a new feature, `feat!:` for a change that breaks existing setups. [release-please](https://github.com/googleapis/release-please) reads them and opens a pull request with the next version and the [changelog](CHANGELOG.md). Run `scripts/release.sh` to open or update that pull request. After you merge it, run `scripts/release.sh publish` to tag the version and make the GitHub release.
+## Contributing
+
+Issues and pull requests are welcome.
+
+- Keep this repo generic: no real company names, IDs, people or links. Those belong in a projects repo.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org): `fix:` for a bug fix, `feat:` for a feature, `feat!:` for a change that breaks existing setups.
+- Agents working on the repo should read "Changing this repo" in [AGENTS.md](AGENTS.md).
+
+Versions follow [semantic versioning](https://semver.org). [release-please](https://github.com/googleapis/release-please) writes the [changelog](CHANGELOG.md) from the commit messages. `scripts/release.sh` opens the release pull request, and `scripts/release.sh publish` makes the release after it merges.
 
 ## License
 
