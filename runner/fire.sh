@@ -32,4 +32,6 @@ else
   ask="Call RemoteTrigger with action run and trigger_id $id. Then call it with action list_runs and the same trigger_id. Reply with one line: the claude.ai link of the newest run, or FAILED and the error."
 fi
 cd "$here"
-exec claude -p "$ask" --allowedTools ToolSearch RemoteTrigger < /dev/null
+reply=$(claude -p "$ask" --allowedTools ToolSearch RemoteTrigger < /dev/null) || { echo "$reply" >&2; exit 1; }
+echo "$reply"
+case "$reply" in *FAILED*) exit 1 ;; esac

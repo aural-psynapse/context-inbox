@@ -30,7 +30,7 @@ Every day an agent reads the new messages, drafts the changes they imply, and pu
 - **You approve every write.** Nothing reaches a destination until someone approves it on the review page.
 - **Every fact is cited.** Each draft quotes the messages behind it, with author, date and a link to the message.
 - **Runs twice, writes once.** Each written record carries a `ctx:` marker, and the agent checks for it before writing.
-- **Nothing gets missed.** Readers keep a cursor per channel and pick up late replies in threads of any age.
+- **Late replies count.** Readers keep a cursor per channel and pick up new replies in threads of any age.
 - **Private chats stay private.** In channels marked private, the agent takes only work messages and skips the rest.
 - **Any source, any destination.** Slack, Linear, Attio and GitHub come built in. An agent adds a new one by writing a short reader or guide.
 - **Agent first.** A coding agent sets the whole thing up from [AGENTS.md](AGENTS.md). Manual setup works too.
@@ -97,7 +97,7 @@ Items wait here until someone decides. Each shows the exact text it will write a
 | [Review page](ui/review.html) | Approve, reject, edit and answer. Filters by status and destination. Run log. |
 | [Runner](runner/) | The daily prompt. [`fire.sh`](runner/fire.sh) starts a run from any agent or script. [`run.sh`](runner/run.sh) runs once while you watch. |
 | [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
-| [Skills and hook](.claude/) | Claude Code skills for setup and run-now. A hook that refuses destination writes without a `ctx:` marker, and any chat post. |
+| [Skills and hook](.claude/) | Claude Code skills for setup and run-now. A hook that refuses the destination writes it lists when they lack a `ctx:` marker, and any chat post. |
 | [Example projects repo](projects-example/) | Acme: Slack to Linear and Slack to Attio. |
 
 ## Manual setup
@@ -108,13 +108,13 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
    ```sh
    python3 connector/check.py <projects repo> <project>
    ```
-2. **Publish [`ui/review.html`](ui/review.html)** as a claude.ai artifact with these capabilities, and put its URL in `review_page`:
+2. **Publish [`ui/review.html`](ui/review.html).** Ask Claude Code to publish it as a claude.ai artifact with these capabilities, and put its URL in `review_page`:
    ```json
    { "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }
    ```
    Share it with your approvers as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
-4. **Schedule it.** Save [`runner/prompt.txt`](runner/prompt.txt) as a Claude Code scheduled task with a daily cron. Start extra runs with:
+4. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Start extra runs with:
    ```sh
    runner/fire.sh <projects repo> <project>   # no person needed
    runner/run.sh  <projects repo> <project>   # watch it run
@@ -161,7 +161,7 @@ scripts/release.sh       makes a release
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and report security problems as [SECURITY.md](SECURITY.md) describes.
 
 - Keep this repo generic: no real company names, IDs, people or links. Those belong in a projects repo.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org): `fix:` for a bug fix, `feat:` for a feature, `feat!:` for a change that breaks existing setups.
@@ -173,4 +173,4 @@ Versions follow [semantic versioning](https://semver.org). [release-please](http
 
 [MIT](LICENSE)
 
-The banner uses [Andromeda Galaxy (black background)](https://commons.wikimedia.org/wiki/File:Andromeda_Galaxy_(black_background).png) by Azcolvin429, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The banner image (`docs/banner.jpg`) is shared under the same license.
+The banner uses [Andromeda Galaxy (black background)](https://commons.wikimedia.org/wiki/File:Andromeda_Galaxy_(black_background).png) by Andrew Z. Colvin, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). We cropped and blurred it and added text. The banner image (`docs/banner.jpg`) is shared under the same license.

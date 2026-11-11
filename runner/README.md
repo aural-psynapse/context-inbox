@@ -12,7 +12,7 @@
 
 ## Run on a schedule
 
-Save `prompt.txt` as a Claude Code scheduled task with a daily cron. Give it:
+Copy `prompt.txt`, replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Give it:
 
 - context-inbox as the first repo, so the session starts inside it and loads the write check in `.claude/`.
 - Your projects repo, and every repo a guide writes to.
