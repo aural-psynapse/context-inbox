@@ -27,8 +27,7 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9_.~:@+-]+$")
 SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
 TOP_KEYS = {"project", "review_page", "sources", "destinations"}
-SOURCE_KEYS = {"id", "type", "reader", "how", "secret", "channels"}
-CHANNEL_KEYS = {"id", "feeds", "private"}
+TYPOS = {"feed": "feeds", "channel": "channels", "destination": "destinations", "source": "sources", "guides": "guide", "readers": "reader", "privat": "private"}
 DEST_KEYS = {"id", "type", "guide"}  # other keys are read by the guide
 
 
@@ -53,9 +52,12 @@ def resolve(project: Path, value: str, kind: str, errors: list, label: str):
     return p
 
 
-def unknown(d: dict, allowed: set, label: str, errors: list) -> None:
+def unknown(d: dict, allowed, label: str, errors: list) -> None:
+    """Catch misspelt keys. Sources and channels may carry extra keys for their reader."""
     for k in d:
-        if k not in allowed:
+        if k in TYPOS:
+            errors.append(f"{label}: unknown key {k!r}, did you mean {TYPOS[k]!r}?")
+        elif allowed is not None and k not in allowed:
             errors.append(f"{label}: unknown key {k!r}")
 
 
@@ -75,7 +77,7 @@ def check(project: Path) -> dict:
     if not (project / "RULES.md").is_file():
         errors.append("RULES.md missing")
     page = cfg.get("review_page")
-    if not isinstance(page, str) or not PAGE.match(page):
+    if not isinstance(page, str) or not PAGE.match(page) or re.search(r"replace|example|00000000", page):
         errors.append("review_page must be a published claude.ai artifact URL, not a placeholder")
     out["review_page"] = page
 
@@ -121,7 +123,7 @@ def check(project: Path) -> dict:
             errors.append(f"{label}: id repeated")
             continue
         seen.add(sid)
-        unknown(s, SOURCE_KEYS, label, errors)
+        unknown(s, None, label, errors)
         stype = s.get("type")
         if not isinstance(stype, str) or not stype:
             errors.append(f"{label}: type missing")
@@ -149,8 +151,11 @@ def check(project: Path) -> dict:
                 errors.append(f"{label}: channels[{j}] must be an object like {{\"id\": ..., \"feeds\": [...]}}")
                 continue
             cid = ch.get("id")
+            if not isinstance(cid, str):
+                errors.append(f"{sid}: channels[{j}] id must be a string")
+                continue
             clabel = f"{sid}/{cid}"
-            unknown(ch, CHANNEL_KEYS, clabel, errors)
+            unknown(ch, None, clabel, errors)
             if not isinstance(cid, str) or not cid or re.search(r"[#\s/]", cid):
                 errors.append(f"{clabel}: channel id must be the exact ID, not a name")
             elif stype == "slack" and not SLACK_CHANNEL.match(cid):
@@ -163,7 +168,7 @@ def check(project: Path) -> dict:
                 errors.append(f"{clabel}: feeds must list at least one destination id")
                 feeds = []
             for f in feeds:
-                if f not in dests:
+                if not isinstance(f, str) or f not in dests:
                     errors.append(f"{clabel}: feeds unknown destination {f!r}")
             if "private" in ch and not isinstance(ch["private"], bool):
                 errors.append(f"{clabel}: private must be true or false")

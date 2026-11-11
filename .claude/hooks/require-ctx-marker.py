@@ -8,12 +8,12 @@ Checked:
 - connector writes that create or change text: issues, comments, documents,
   notes, tasks, records, list entries
 - `git commit` outside this repo: one line, marker, no trailers
-- `gh issue|pr create|comment|edit` and `gh api` writes
+- `gh issue|pr create|comment|edit` and `gh api` writes outside this repo
 
 Refused outright: posting to chat, since a run never sends messages.
 
-Not checked: field-only updates such as an Attio stage change or closing a
-task. They carry no text for a marker. Guides pair each one with a note that
+Not checked: field-only updates, such as a Linear state change by issue id,
+an Attio stage change or closing a task. They carry no text for a marker. Guides pair each one with a note that
 carries it. `git push` is not checked; the commit before it is.
 """
 
@@ -25,8 +25,11 @@ import sys
 WRITE_TOOLS = re.compile(
     r"(save_issue|save_comment|save_document|save_project|create_attachment|"
     r"create-note|update-note|create-task|create-record|upsert-record|"
-    r"create-comment|add-record-to-list|create-activity-record|upsert-activity-record)$"
+    r"create-comment|add-record-to-list|create-activity-record|upsert-activity-record|"
+    r"save_status_update|save_release_note|create_draft)$"
 )
+TEXT_KEYS = {"description", "body", "content", "text", "title", "note", "message", "comment"}
+GIT_COMMIT = re.compile(r"\bgit(\s+(-c\s+\S+|-C\s+\S+|--[\w-]+(=\S+)?))*\s+commit\b")
 CHAT_SEND = re.compile(r"(send_message|schedule_message|send_message_draft|chat_postMessage)$")
 
 
@@ -41,7 +44,8 @@ def check(call: dict) -> None:
     if name.startswith("mcp__"):
         if CHAT_SEND.search(name):
             block(f"{name}: a run never posts to chat.")
-        if WRITE_TOOLS.search(name) and "ctx: " not in json.dumps(args, ensure_ascii=False):
+        field_only = isinstance(args, dict) and args.get("id") and not (TEXT_KEYS & set(args))
+        if WRITE_TOOLS.search(name) and not field_only and "ctx: " not in json.dumps(args, ensure_ascii=False):
             block(f"{name}: a run writes only approved items, and each carries `ctx: <item id>`. Add the marker or skip the write.")
         return
     if name != "Bash":
@@ -49,7 +53,9 @@ def check(call: dict) -> None:
     cmd = args.get("command", "")
     here = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR", ""))
     outside = os.path.realpath(call.get("cwd", "")) != here or re.search(r"\bcd\s|\bgit\s+(\S+\s+)*-C\s", cmd)
-    if re.search(r"\bgit\b[^|;&\n]*\bcommit\b", cmd) and outside:
+    if not outside:
+        return
+    if GIT_COMMIT.search(cmd):
         if len(re.findall(r"(^|\s)(-m|--message)(\s|=)", cmd)) > 1 or re.search(r"-m\s+(\"[^\"]*\n|'[^']*\n)", cmd):
             block("git commit: one-line message only.")
         if re.search(r"\b(Co-Authored-By|Signed-off-by|Generated with)\b", cmd, re.I):

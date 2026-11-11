@@ -91,6 +91,7 @@ Run the steps in order. Each ends on its done line.
    Done when every channel has a count or an error.
 3. **Propose.** Turn the new messages into items per [`RULES.md`](RULES.md) and the project's `RULES.md`. A message may feed only the destinations its channel lists in `feeds`. Write each item to `proposals`. An item whose `id` already exists gets updated, never duplicated, but only while it is undecided. A decided item is frozen: never change it. New facts for that record become a new item with id `<old id>--<first new message ts without the dot>`, so a reviewer sees and approves them.
    Then read the reviewer's answers: for each undecided item with `unsure: true` and a `decision.comment`, apply the answer. Rewrite the item to match, or delete it when the answer says it is off topic. Set `unsure: false` and keep the comment.
+   Skip a message that an existing item already cites, by channel and `ts`. A reader can return a message twice when it was posted during the previous run.
    Done when every new message is cited by an item or plainly off topic for every destination it feeds, and every answer is applied.
 4. **Save cursors.** Replace `state/<source id>` with a `set` whose data is exactly `{ "cursors": { "<channel id>": "<cursor>" } }`, nothing wrapped around it. This comes last, so a run that fails earlier re-reads the same messages next time.
 5. **Log the run.** Write `runs/<UTC start time>`: `{ date, counts: { channel_id: n }, pushed: n, proposed: n, errors: [text] }`. `date` is the run's start as an ISO 8601 UTC timestamp, such as `2026-01-31T06:00:00Z`. Write it even when a step failed, with the error text.
@@ -101,7 +102,7 @@ Nothing reaches a destination without `decision.status == "approved"`. Rejected 
 
 This repo stays generic. It holds no real project's names, IDs, people or links.
 
-- `projects-example/` passes `connector/check.py`. Readers are Python 3.9+, standard library only.
+- `projects-example/` passes `connector/check.py` except for its fake `review_page`. Readers are Python 3.9+, standard library only.
 - An integration is a folder in `integrations/` holding `reader.py`, `guide.md`, or both. A recipe shows one source and one destination wired together.
 - `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo.
 - `ui/review.html` is one file with no build step and shows any destination type. After a change, take a screenshot in a browser and republish it to the same artifact URL.

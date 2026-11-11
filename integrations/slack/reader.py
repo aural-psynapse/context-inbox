@@ -62,10 +62,10 @@ def text_of(m: dict) -> str:
     """Message text, plus the text of attachments and forwarded messages."""
     parts = [m.get("text") or ""]
     for a in m.get("attachments", []):
-        for k in ("pretext", "title", "text", "fallback"):
-            if a.get(k) and a[k] not in parts:
-                parts.append(a[k])
-                break
+        got = [a[k] for k in ("pretext", "title", "text") if a.get(k) and a[k] not in parts]
+        if not got and a.get("fallback") and a["fallback"] not in parts:
+            got = [a["fallback"]]
+        parts += got
     return "\n".join(p for p in parts if p).strip()
 
 

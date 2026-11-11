@@ -40,7 +40,7 @@ The agent looks up channel IDs, picks or writes a reader for each source and a g
 | [Review page](ui/review.html) | Items to approve, reject or edit, filtered by status and destination. Last sync, and a run log with counts and errors per run. Keys: J, K, A, R, E, U. |
 | [Runner](runner/) | The scheduled-run prompt, and `run.sh` to run once on your machine. |
 | [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
-| [Skills and hook](.claude/) | `context-inbox-setup` and `context-inbox-run` skills. A hook that refuses connector writes, commits and GitHub writes that lack a `ctx:` marker, and any chat post. It checks the marker is there; the run checks approval. |
+| [Skills and hook](.claude/) | `context-inbox-setup` and `context-inbox-run` skills. A hook that refuses the connector writes it lists, commits and GitHub writes when they lack a `ctx:` marker, and any chat post. It checks the marker is there; the run checks approval. |
 | [Example projects repo](projects-example/) | One project, Acme: Slack to Linear and Slack to Attio. |
 
 A source needs a reader and a destination needs a guide. Use one from `integrations/` by name, or let the agent write one into your project folder. Routing lives in config: each channel lists the destinations it `feeds`.

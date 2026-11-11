@@ -17,4 +17,4 @@ cd "$here"
 exec claude -p "$prompt" \
   --add-dir "$projects" \
   --permission-mode acceptEdits \
-  --allowedTools "Bash Read Write Edit Glob Grep ToolSearch ArtifactData ${CONTEXT_INBOX_TOOLS:-}"
+  --allowedTools "Bash(python3:*) Bash(git:*) Read Write Edit Glob Grep ToolSearch ArtifactData ${CONTEXT_INBOX_TOOLS:-}"
