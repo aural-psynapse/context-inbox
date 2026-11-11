@@ -16,7 +16,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 
 ## Writing
 
-- Plain English, short sentences, active voice. Commas and full stops in place of dashes.
+- Plain words, short sentences, active voice, in the language the project's `RULES.md` names (English when it names none). Commas and full stops in place of dashes.
 - `body` is the exact text that gets written. At most 80 words, except verbatim file content. Write it as the team would, first person or neutral.
 
 ## Item shape

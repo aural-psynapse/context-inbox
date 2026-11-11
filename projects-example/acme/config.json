@@ -1,6 +1,6 @@
 {
   "project": "acme",
-  "review_page": "https://claude.ai/artifact/<id>",
+  "review_page": "https://claude.ai/artifact/00000000-replace-with-your-page",
   "sources": [
     {
       "id": "slack-acme",

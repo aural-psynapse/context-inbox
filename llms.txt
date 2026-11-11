@@ -23,7 +23,7 @@ Each project keeps a folder in a separate private repo with `config.json` and `R
 - [runner/prompt.txt](runner/prompt.txt): prompt for a scheduled run.
 - [runner/run.sh](runner/run.sh): run once on this machine.
 - [.claude/skills/](.claude/skills/): setup and run-now skills.
-- [.claude/hooks/require-ctx-marker.py](.claude/hooks/require-ctx-marker.py): refuses destination writes without an approved item's marker.
+- [.claude/hooks/require-ctx-marker.py](.claude/hooks/require-ctx-marker.py): refuses destination writes that lack a `ctx:` marker, and chat posts.
 
 ## Optional
 

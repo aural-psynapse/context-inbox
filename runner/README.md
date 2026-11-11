@@ -1,6 +1,21 @@
 # Runner
 
-- `run.sh PROJECTS_DIR PROJECT` checks the project with the connector, then runs the daily run once with Claude Code on this machine.
-- `prompt.txt` is the prompt for a scheduled run. Save it as a Claude Code routine with a daily cron, the three repos it needs (context-inbox, your projects repo, any repo a guide writes to), and the connectors your guides name.
+- `run.sh PROJECTS_DIR PROJECT` checks the project's config, then runs the daily run once with Claude Code on this machine. A config error prints the errors and stops before Claude starts.
+- `prompt.txt` is the prompt for a scheduled run.
 
-A run with a config error stops at the connector check and writes nothing.
+## Run on this machine
+
+- Sign Claude Code in with a claude.ai account. The review page tools need it.
+- Set `CONTEXT_INBOX_TOOLS` to the connector servers your guides use, such as `mcp__claude_ai_Linear mcp__claude_ai_Attio`, so the run may call them without asking.
+- Set each source token in the env var named by its `secret`.
+
+## Run on a schedule
+
+Save `prompt.txt` as a Claude Code routine with a daily cron. Give it:
+
+- context-inbox as the first repo, so the session starts inside it and loads the write check in `.claude/`.
+- Your projects repo, and every repo a guide writes to.
+- Every connector your guides name.
+- Each source token as a network secret for its API host.
+
+A run with a config error writes a run log entry with the errors and writes nothing else.

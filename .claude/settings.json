@@ -3,7 +3,7 @@
     "PreToolUse": [
       {
         "matcher": "mcp__.*|Bash",
-        "hooks": [ { "type": "command", "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/require-ctx-marker.py\"; [ ! -f \"$f\" ] || python3 \"$f\"" } ]
+        "hooks": [ { "type": "command", "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/require-ctx-marker.py\"; [ -f \"$f\" ] || exit 0; command -v python3 >/dev/null || { echo 'python3 is missing, so the write check cannot run.' >&2; exit 2; }; python3 \"$f\"" } ]
       }
     ]
   }

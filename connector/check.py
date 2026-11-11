@@ -1,15 +1,16 @@
 """Find project folders, check their config, and print what the run should use.
 
 Usage:
-  python3 connector/check.py [PROJECTS_DIR] [PROJECT]
+  python3 connector/check.py PROJECTS_DIR [PROJECT]
+  CONTEXT_INBOX_PROJECTS=PROJECTS_DIR python3 connector/check.py
 
-PROJECTS_DIR  folder holding one subfolder per project. Defaults to the
-              CONTEXT_INBOX_PROJECTS env var.
+PROJECTS_DIR  folder holding one subfolder per project.
 PROJECT       check only this project folder name.
 
 A project folder holds config.json and RULES.md. In config, `reader` and
-`guide` take either an integration name (a folder in integrations/) or a
-path relative to the project folder.
+`guide` take an integration name (a folder in integrations/, such as "slack")
+or a path inside the project folder. A value is a path when it contains "/"
+or ends in a file extension, such as "readers/forum.py" or "./notion.md".
 
 Prints one JSON object per project with resolved paths. Exits 1 when any
 project has an error, so a run stops before reading or writing anything.
@@ -22,74 +23,150 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-BAD_ID = re.compile(r"[#\s]")
+SAFE_ID = re.compile(r"^[A-Za-z0-9_.~:@+-]+$")
+SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
+PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
+TOP_KEYS = {"project", "review_page", "sources", "destinations"}
+SOURCE_KEYS = {"id", "type", "reader", "how", "secret", "channels"}
+CHANNEL_KEYS = {"id", "feeds", "private"}
+DEST_KEYS = {"id", "type", "guide"}  # other keys are read by the guide
 
 
-def resolve(project: Path, value: str, kind: str) -> Path:
-    if "/" in value:
-        return project / value
-    name = "reader.py" if kind == "reader" else "guide.md"
-    return REPO / "integrations" / value / name
+def is_path(value: str) -> bool:
+    return "/" in value or bool(re.search(r"\.[A-Za-z0-9]+$", value))
+
+
+def resolve(project: Path, value: str, kind: str, errors: list, label: str):
+    if not isinstance(value, str) or not value:
+        errors.append(f"{label}: {kind} must be a non-empty string")
+        return None
+    if is_path(value):
+        p = (project / value).resolve()
+        if project.resolve() not in p.parents:
+            errors.append(f"{label}: {kind} {value!r} points outside the project folder")
+            return None
+    else:
+        p = REPO / "integrations" / value / ("reader.py" if kind == "reader" else "guide.md")
+    if not p.is_file():
+        errors.append(f"{label}: {kind} not found at {p}")
+        return None
+    return p
+
+
+def unknown(d: dict, allowed: set, label: str, errors: list) -> None:
+    for k in d:
+        if k not in allowed:
+            errors.append(f"{label}: unknown key {k!r}")
 
 
 def check(project: Path) -> dict:
-    errors: list[str] = []
-    warnings: list[str] = []
+    errors: list = []
+    warnings: list = []
     out: dict = {"project": project.name, "folder": str(project), "errors": errors, "warnings": warnings}
-    cfg_path = project / "config.json"
     try:
-        cfg = json.loads(cfg_path.read_text())
-    except (OSError, json.JSONDecodeError) as e:
+        cfg = json.loads((project / "config.json").read_text())
+    except (OSError, ValueError) as e:
         errors.append(f"config.json: {e}")
         return out
-    if not (project / "RULES.md").exists():
+    if not isinstance(cfg, dict):
+        errors.append("config.json must hold an object")
+        return out
+    unknown(cfg, TOP_KEYS, "config", errors)
+    if not (project / "RULES.md").is_file():
         errors.append("RULES.md missing")
-    page = cfg.get("review_page", "")
-    if not page.startswith("https://claude.ai/"):
-        errors.append("review_page must be a claude.ai artifact URL")
+    page = cfg.get("review_page")
+    if not isinstance(page, str) or not PAGE.match(page):
+        errors.append("review_page must be a published claude.ai artifact URL, not a placeholder")
     out["review_page"] = page
 
-    dests = {}
-    for d in cfg.get("destinations", []):
-        did = d.get("id", "")
-        if not did or did in dests:
-            errors.append(f"destination id missing or repeated: {did!r}")
+    dests: dict = {}
+    raw_dests = cfg.get("destinations")
+    if not isinstance(raw_dests, list) or not raw_dests:
+        errors.append("destinations must be a non-empty list")
+        raw_dests = []
+    for i, d in enumerate(raw_dests):
+        if not isinstance(d, dict):
+            errors.append(f"destinations[{i}] must be an object")
             continue
-        guide = resolve(project, d.get("guide", d.get("type", "")), "guide")
-        if not guide.exists():
-            errors.append(f"{did}: guide not found at {guide}")
-        dests[did] = {**d, "guide_path": str(guide)}
+        did = d.get("id")
+        label = f"destination {did!r}"
+        if not isinstance(did, str) or not SAFE_ID.match(did):
+            errors.append(f"{label}: id must use only letters, digits and _ . ~ : @ + -")
+            continue
+        if did in dests:
+            errors.append(f"{label}: id repeated")
+            continue
+        if not isinstance(d.get("type"), str) or not d.get("type"):
+            errors.append(f"{label}: type missing")
+        guide = resolve(project, d.get("guide", d.get("type")), "guide", errors, label)
+        dests[did] = {**d, "guide_path": str(guide) if guide else None}
     out["destinations"] = list(dests.values())
 
     sources = []
-    seen = set()
-    for s in cfg.get("sources", []):
-        sid = s.get("id", "")
-        if not sid or sid in seen:
-            errors.append(f"source id missing or repeated: {sid!r}")
+    seen: set = set()
+    raw_sources = cfg.get("sources")
+    if not isinstance(raw_sources, list) or not raw_sources:
+        errors.append("sources must be a non-empty list")
+        raw_sources = []
+    for i, s in enumerate(raw_sources):
+        if not isinstance(s, dict):
+            errors.append(f"sources[{i}] must be an object")
+            continue
+        sid = s.get("id")
+        label = f"source {sid!r}"
+        if not isinstance(sid, str) or not SAFE_ID.match(sid):
+            errors.append(f"{label}: id must use only letters, digits and _ . ~ : @ + -")
+            continue
+        if sid in seen:
+            errors.append(f"{label}: id repeated")
             continue
         seen.add(sid)
+        unknown(s, SOURCE_KEYS, label, errors)
+        stype = s.get("type")
+        if not isinstance(stype, str) or not stype:
+            errors.append(f"{label}: type missing")
         src = {k: v for k, v in s.items() if k != "channels"}
+        if "how" in s and "reader" in s:
+            errors.append(f"{label}: set reader or how, not both")
         if "how" in s:
-            src["read"] = {"how": s["how"]}
+            if not isinstance(s["how"], str) or not s["how"].strip():
+                errors.append(f"{label}: how must be plain instructions")
+            src["read"] = {"how": s.get("how")}
         else:
-            reader = resolve(project, s.get("reader", s.get("type", "")), "reader")
-            if not reader.exists():
-                errors.append(f"{sid}: reader not found at {reader}")
-            src["read"] = {"run": ["python3", str(reader)] if reader.suffix == ".py" else [str(reader)]}
+            reader = resolve(project, s.get("reader", stype), "reader", errors, label)
+            if reader:
+                src["read"] = {"run": ["python3", str(reader)] if reader.suffix == ".py" else [str(reader)]}
         secret = s.get("secret")
-        if secret and not os.environ.get(secret):
-            warnings.append(f"{sid}: env var {secret} is unset; fine only where a network proxy adds the token")
-        channels = s.get("channels", [])
-        if not channels:
-            errors.append(f"{sid}: no channels")
-        for ch in channels:
-            cid = ch.get("id", "")
-            if not cid or BAD_ID.search(cid):
-                errors.append(f"{sid}: channel id {cid!r} must be the exact ID, not a name")
-            for f in ch.get("feeds", []):
+        if isinstance(secret, str) and secret and not os.environ.get(secret):
+            warnings.append(f"{label}: env var {secret} is unset. Fine only where a network proxy adds the token.")
+        channels = s.get("channels")
+        if not isinstance(channels, list) or not channels:
+            errors.append(f"{label}: channels must be a non-empty list")
+            channels = []
+        cids: set = set()
+        for j, ch in enumerate(channels):
+            if not isinstance(ch, dict):
+                errors.append(f"{label}: channels[{j}] must be an object like {{\"id\": ..., \"feeds\": [...]}}")
+                continue
+            cid = ch.get("id")
+            clabel = f"{sid}/{cid}"
+            unknown(ch, CHANNEL_KEYS, clabel, errors)
+            if not isinstance(cid, str) or not cid or re.search(r"[#\s/]", cid):
+                errors.append(f"{clabel}: channel id must be the exact ID, not a name")
+            elif stype == "slack" and not SLACK_CHANNEL.match(cid):
+                errors.append(f"{clabel}: Slack channel ids look like C0123456789, not a name")
+            if cid in cids:
+                errors.append(f"{clabel}: channel listed twice")
+            cids.add(cid)
+            feeds = ch.get("feeds")
+            if not isinstance(feeds, list) or not feeds:
+                errors.append(f"{clabel}: feeds must list at least one destination id")
+                feeds = []
+            for f in feeds:
                 if f not in dests:
-                    errors.append(f"{sid}/{cid}: feeds unknown destination {f!r}")
+                    errors.append(f"{clabel}: feeds unknown destination {f!r}")
+            if "private" in ch and not isinstance(ch["private"], bool):
+                errors.append(f"{clabel}: private must be true or false")
         src["channels"] = channels
         sources.append(src)
     out["sources"] = sources
@@ -98,9 +175,10 @@ def check(project: Path) -> dict:
 
 def main() -> None:
     args = sys.argv[1:]
-    root = Path(args[0]) if args else Path(os.environ.get("CONTEXT_INBOX_PROJECTS", ""))
-    if not str(root) or not root.is_dir():
+    root_arg = args[0] if args else os.environ.get("CONTEXT_INBOX_PROJECTS", "")
+    if not root_arg or not Path(root_arg).is_dir():
         sys.exit(__doc__)
+    root = Path(root_arg)
     only = args[1] if len(args) > 1 else None
     folders = sorted(p for p in root.iterdir() if (p / "config.json").exists() and (not only or p.name == only))
     if not folders:
@@ -110,6 +188,8 @@ def main() -> None:
         r = check(p)
         failed |= bool(r["errors"])
         print(json.dumps(r, indent=2, ensure_ascii=False))
+        for e in r["errors"]:
+            print(f"error: {p.name}: {e}", file=sys.stderr)
     sys.exit(1 if failed else 0)
 
 

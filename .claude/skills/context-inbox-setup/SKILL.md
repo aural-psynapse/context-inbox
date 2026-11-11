@@ -1,6 +1,6 @@
 ---
 name: context-inbox-setup
-description: Set up context-inbox for a new project, or add a source or destination to one. Use when someone asks to connect Slack, email or another source to Linear, Attio, GitHub or another tool through a review page.
+description: "Set up context-inbox for a new project, or add a source or destination to one. Use when someone asks to connect Slack, email or another source to Linear, Attio, GitHub or another tool through a review page."
 ---
 
 Follow "Set up a project" in AGENTS.md at the repo root.
