@@ -104,6 +104,6 @@ This repo stays generic. It holds no real project's names, IDs, people or links.
 
 - `projects-example/` passes `connector/check.py` except for its fake `review_page`. Readers are Python 3.9+, standard library only.
 - An integration is a folder in `integrations/` holding `reader.py`, `guide.md`, or both. A recipe shows one source and one destination wired together.
-- `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo.
+- `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo, such as `runner/run.sh`. Scheduled cloud runs start one folder above, so it does not load there.
 - `ui/review.html` is one file with no build step and shows any destination type. After a change, take a screenshot in a browser and republish it to the same artifact URL.
 - Commits: one line, `type: what changed`, no trailers. The type sets the next version: `fix:` raises the last number, `feat:` the middle one, and `feat!:` or a `BREAKING CHANGE:` line the first one. `docs:`, `chore:`, `ci:` and `refactor:` raise nothing. `scripts/release.sh` opens a pull request with the new version and changelog. After it merges, `scripts/release.sh publish` makes the release.

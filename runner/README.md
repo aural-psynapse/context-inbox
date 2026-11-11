@@ -14,10 +14,12 @@
 
 Copy `prompt.txt`, replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Give it:
 
-- context-inbox as the first repo, so the session starts inside it and loads the write check in `.claude/`.
+- context-inbox.
 - Your projects repo, and every repo a guide writes to.
 - Every connector your guides name.
 - Each source token as a network secret for its API host.
+
+A scheduled run starts one folder above the repos it clones, so the write check in `.claude/` does not load there. The run still writes only approved items, because step 1 of the daily run checks each one against the review page.
 
 A scheduled run with a config error writes a run log entry with the errors and writes nothing else.
 
