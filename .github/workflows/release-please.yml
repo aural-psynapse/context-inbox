@@ -1,8 +1,10 @@
 name: release-please
 
+# Starts only by hand while the repo is private: GitHub bills Actions minutes on
+# private repos. scripts/release.sh does the same job from a laptop.
+# Once the repo is public, switch this back to: push: branches: [main]
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write

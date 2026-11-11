@@ -88,7 +88,7 @@ projects-example/        a projects repo to copy
 
 ## Versioning
 
-The repo follows [semantic versioning](https://semver.org). Commit messages start with a type, as [Conventional Commits](https://www.conventionalcommits.org) describes: `fix:` for a bug fix, `feat:` for a new feature, `feat!:` for a change that breaks existing setups. [release-please](https://github.com/googleapis/release-please) reads them, opens a pull request with the next version and the [changelog](CHANGELOG.md), and makes the release when you merge it.
+The repo follows [semantic versioning](https://semver.org). Commit messages start with a type, as [Conventional Commits](https://www.conventionalcommits.org) describes: `fix:` for a bug fix, `feat:` for a new feature, `feat!:` for a change that breaks existing setups. [release-please](https://github.com/googleapis/release-please) reads them and opens a pull request with the next version and the [changelog](CHANGELOG.md). Run `scripts/release.sh` to open or update that pull request. After you merge it, run `scripts/release.sh publish` to tag the version and make the GitHub release.
 
 ## License
 
