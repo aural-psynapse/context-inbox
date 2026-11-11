@@ -78,3 +78,7 @@ destinations/          one guide per destination type
 scripts/sources/       one reader per source type
 review.html            the review page
 ```
+
+## License
+
+[MIT](LICENSE)
