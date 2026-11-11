@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/banner.jpg" alt="Context Inbox. Chat in. Approved updates out." width="100%"></p>
 
 <p align="center">
-  <b>Turn team chat into updates in your tracker, CRM and docs.<br>An agent drafts every change. A person approves it first.</b>
+  <b>Your team decides things in chat. Context Inbox gets them into your tracker, CRM and docs.<br>An agent drafts each update. You approve it before anything is written.</b>
 </p>
 
 <p align="center">
@@ -19,25 +19,30 @@
   <img src="https://img.shields.io/badge/python-3.9%2B-3776ab" alt="Python 3.9+">
 </p>
 
----
+Bug reports, deal news and decisions land in chat. The tracker, the CRM and the docs fall behind, because nobody has time to copy things over.
 
-Decisions, bug reports and deal updates live in chat. Your tracker, CRM and docs fall behind. Context Inbox carries the updates over, and writes nothing without a person's approval.
+Context Inbox does the copying. Every day an agent reads the new messages and drafts the updates they call for. Each draft waits on a review page with the exact text and the messages behind it. You approve, reject or edit. The next run writes only what you approved.
 
-Every day an agent reads the new messages, drafts the changes they imply, and puts each draft on a review page with the exact text and the messages it came from. You approve, reject or edit. The next run writes only what you approved.
+![Inbox with items to review](docs/screenshots/inbox.png)
+
+<p align="center"><sub>The review page. Each item shows the exact text it will write and the messages it came from.</sub></p>
 
 ## Highlights
 
-- **You approve every write.** Nothing reaches a destination until someone approves it on the review page.
-- **Every fact is cited.** Each draft quotes the messages behind it, with author, date and a link to the message.
-- **Runs twice, writes once.** Each written record carries a `ctx:` marker, and the agent checks for it before writing.
+- **Nothing is written without a yes.** Every update waits on the review page until a person approves it.
+- **Every fact has a source.** Each draft quotes the messages behind it, with author, date and a link to the message.
+- **No double writes.** Each written record carries a `ctx:` marker. The agent looks for it before writing, so a repeated run does not write the same record twice.
 - **Late replies count.** Readers keep a cursor per channel and pick up new replies in threads of any age.
-- **Private chats stay private.** In channels marked private, the agent takes only work messages and skips the rest.
-- **Any source, any destination.** Slack, Linear, Attio and GitHub come built in. An agent adds a new one by writing a short reader or guide.
-- **Agent first.** A coding agent sets the whole thing up from [AGENTS.md](AGENTS.md). Manual setup works too.
+- **Personal talk stays out.** In channels marked private, the agent takes only work messages and skips the rest.
+- **It asks when unsure.** The agent puts a question on the item. Your answer goes into the next run.
+- **Works with your tools.** Slack, Linear, Attio and GitHub come built in. A new source takes a short reader. A new destination takes a guide of a few lines.
+- **Set up by an agent.** A coding agent does the whole setup from [AGENTS.md](AGENTS.md). Manual setup works too.
 
 ## Quickstart
 
-Give a coding agent this repo and tell it what to connect:
+You need Claude Code, a claude.ai account and Python 3.9+.
+
+Open this repo in a coding agent and tell it what to connect:
 
 ```text
 Set up context-inbox for project "acme" following AGENTS.md.
@@ -46,7 +51,9 @@ Read #sales and #support in our Slack. Write deals to Attio and bugs to Linear.
 
 The agent finds the channel IDs, picks a reader and a guide for each tool, checks the config, publishes the review page and runs once. Then it offers to schedule a daily run.
 
-Prefer to do it yourself? See [Manual setup](#manual-setup).
+After that, your part is the review page. Approve what is right, and the next run writes it.
+
+To set it up by hand, see [Manual setup](#manual-setup).
 
 ## How it works
 
@@ -65,9 +72,7 @@ Prefer to do it yourself? See [Manual setup](#manual-setup).
 
 ## The review page
 
-Items wait here until someone decides. Each shows the exact text it will write and the messages it came from.
-
-![Inbox with items to review](docs/screenshots/inbox.png)
+Items wait here until someone decides. You answer the agent's questions, follow each written item to its record, and see what every run did.
 
 <table>
   <tr>
