@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0](https://github.com/aural-psynapse/context-inbox/compare/v0.5.0...v1.0.0) (2026-11-11)
+
+First public release. The config format, the item shape and the reader and guide formats are now stable. A change that breaks them will raise the first number.
+
+### Bug Fixes
+
+* `runner/fire.sh` exits with an error when the run fails to start.
+
+### Documentation
+
+* README with banner, screenshots of the review page, quickstart and integrations.
+* CONTRIBUTING.md and SECURITY.md.
+
+### Miscellaneous
+
+* Tests for the connector and the write check, run by CI on every push with ruff and shellcheck.
+* release-please runs on GitHub Actions.
+
 ## [0.5.0](https://github.com/aural-psynapse/context-inbox/compare/v0.4.0...v0.5.0) (2026-11-11)
 
 ### Features
