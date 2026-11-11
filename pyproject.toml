@@ -2,12 +2,12 @@
 name = "context-inbox"
 version = "1.0.0" # x-release-please-version
 description = "Turn team chat into updates in your tracker, CRM and docs. An agent drafts every change, a person approves it."
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]

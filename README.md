@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/version-1.0.0-6e7bff" alt="Version"> <!-- x-release-please-version -->
   <img src="https://img.shields.io/badge/license-MIT-3fb950" alt="MIT license">
   <img src="https://img.shields.io/badge/runs%20on-Claude%20Code-d97757" alt="Runs on Claude Code">
-  <img src="https://img.shields.io/badge/python-3.9%2B-3776ab" alt="Python 3.9+">
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776ab" alt="Python 3.10+">
 </p>
 
 Bug reports, deal news and decisions land in chat. The tracker, the CRM and the docs fall behind, because nobody has time to copy things over.
@@ -40,7 +40,7 @@ Context Inbox does the copying. Every day an agent reads the new messages and dr
 
 ## Quickstart
 
-You need Claude Code, a claude.ai account and Python 3.9+.
+You need Claude Code, a claude.ai account and Python 3.10+.
 
 Open this repo in a coding agent and tell it what to connect:
 
@@ -107,7 +107,7 @@ Items wait here until someone decides. You answer the agent's questions, follow 
 
 ## Manual setup
 
-You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.9+.
+You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.10+.
 
 1. **Make a project folder** in a private repo of its own, starting from [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then check them:
    ```sh

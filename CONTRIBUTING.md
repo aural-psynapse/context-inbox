@@ -6,7 +6,7 @@ Thanks for helping. Issues and pull requests are welcome.
 
 - Run the tests: `python3 -m unittest discover -s tests`.
 - Keep the repo generic. Real company names, channel IDs, people and links belong in a projects repo, not here.
-- Readers stay Python 3.9+ with the standard library only.
+- Readers stay Python 3.10+ with the standard library only.
 - After changing `ui/review.html`, take a screenshot in a browser and attach it to the pull request.
 
 ## Commit messages
