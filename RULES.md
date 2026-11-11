@@ -31,7 +31,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   "existing": { "id": "...", "url": "..." },
   "title": "Short title of the record or change",
   "body": "Exact text to write",
-  "fields": { "path": "...", "stage": "...", "assignee": "...", "due": "YYYY-MM-DD" },
+  "fields": { "paths": ["every file the commit will touch"], "stage": "...", "assignee": "...", "due": "YYYY-MM-DD" },
   "citations": [
     { "date": "YYYY-MM-DD", "author": "Name", "channel": "<channel id>", "quote": "verbatim", "link": "https://..." }
   ],
