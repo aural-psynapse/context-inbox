@@ -89,7 +89,8 @@ def main() -> None:
             continue
         cursor = float(cursors.get(cid, "0"))
         oldest = min(cursor, thread_floor) if cursor else 0
-        parents = paged("conversations.history", "messages", channel=cid, oldest=str(oldest))
+        # Slack ignores an "oldest" with more than 6 decimals and returns nothing.
+        parents = paged("conversations.history", "messages", channel=cid, oldest=f"{oldest:.6f}")
         rows = [m for m in parents if float(m["ts"]) > cursor]
         for m in parents:
             if m.get("reply_count") and (float(m["ts"]) > cursor or float(m.get("latest_reply", "0")) > cursor):
