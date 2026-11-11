@@ -33,7 +33,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   "body": "Exact text to write",
   "fields": { "paths": ["every file the commit will touch"], "stage": "...", "assignee": "...", "due": "YYYY-MM-DD" },
   "citations": [
-    { "date": "YYYY-MM-DD", "author": "Name", "channel": "<channel id>", "quote": "verbatim", "link": "https://..." }
+    { "date": "YYYY-MM-DD HH:MM", "author": "Name", "channel": "<channel id>", "ts": "<message ts>", "quote": "verbatim", "link": "https://..." }
   ],
   "unsure": false,
   "question": "",

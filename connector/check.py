@@ -54,8 +54,11 @@ def resolve(project: Path, value: str, kind: str, errors: list, label: str):
 
 def unknown(d: dict, allowed, label: str, errors: list) -> None:
     """Catch misspelt keys. Sources and channels may carry extra keys for their reader."""
+    known = {"id", "type", "reader", "how", "secret", "channels", "feeds", "private", "guide"}
     for k in d:
-        if k in TYPOS:
+        if k not in known and k.lower() in known:
+            errors.append(f"{label}: unknown key {k!r}, did you mean {k.lower()!r}? Keys are case-sensitive.")
+        elif k in TYPOS:
             errors.append(f"{label}: unknown key {k!r}, did you mean {TYPOS[k]!r}?")
         elif allowed is not None and k not in allowed:
             errors.append(f"{label}: unknown key {k!r}")

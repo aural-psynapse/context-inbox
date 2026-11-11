@@ -70,7 +70,7 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 | `destinations[].type` | Name of the tool. The review page colours items by it. |
 | `destinations[].guide` | Integration name, such as `attio`, or a path inside the project folder. |
 
-Other keys on a destination, such as `team` or `repo`, are read by its guide.
+Other keys on a destination, such as `team` or `repo`, are read by its guide. Other keys on a source or a channel, such as a forum address, are read by its reader. Keys are case-sensitive.
 
 ## Repo layout
 

@@ -109,7 +109,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
   body { overflow: auto; }
   .app { display: block; height: auto; }
   .side { border-right: 0; border-bottom: 1px solid var(--border); gap: 12px; }
-  .app.show-detail .side, .side .group { display: none; }
+  .app.show-detail .side, #g-status { display: none; }
   .list { border-right: 0; }
   .list-head { top: env(safe-area-inset-top, 0px); }
   .app.show-detail .list { display: none; } .app:not(.show-detail) .detail { display: none; }
@@ -285,11 +285,11 @@ function move(d) { const ps = visible(); const i = ps.findIndex((x) => x.id === 
 function act(a) {
   if (!S.db) return;
   const leaves = S.status === "pending" || S.status === "ask";
-  const cur = S.docs.find((x) => x.id === S.cur);
+  const cur = S.docs.find((x) => x.id === S.shown);
   if (S.editing && ["approve", "reject", "reset", "edit"].includes(a)) { toast("Save or cancel your text edit first."); return; }
-  if (a === "approve") decide(S.cur, { status: "approved" }, leaves);
-  if (a === "reject") decide(S.cur, { status: "rejected" }, leaves);
-  if (a === "reset") decide(S.cur, { status: "pending" }, S.status === "approved" || S.status === "rejected");
+  if (a === "approve") decide(S.shown, { status: "approved" }, leaves);
+  if (a === "reject") decide(S.shown, { status: "rejected" }, leaves);
+  if (a === "reset") decide(S.shown, { status: "pending" }, S.status === "approved" || S.status === "rejected");
   if (a === "comment") decide(S.shown, {}, false);
   if (a === "edit" && cur && !cur.pushed) { S.editing = cur.id; S.editFrom = st(cur); renderDetail(); $("edit")?.focus(); }
   if (a === "cancel") { S.editing = false; renderDetail(); }

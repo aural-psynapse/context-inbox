@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run one project's daily run now, on this machine.
+# Run one project's daily run now, on this machine, in an interactive Claude Code session.
 # Usage: runner/run.sh PROJECTS_DIR PROJECT
 # Set CONTEXT_INBOX_TOOLS to the connector servers your guides use, such as
 # "mcp__claude_ai_Linear mcp__claude_ai_Attio". Claude Code must be signed in
@@ -14,7 +14,15 @@ if ! python3 "$here/connector/check.py" "$projects" "$2" > /dev/null; then
 fi
 prompt=$(sed "s#<projects repo>/<project>#$projects/$2#" "$here/runner/prompt.txt")
 cd "$here"
-exec claude -p "$prompt" \
+# Shell access covers only the checker, the readers and the git steps a guide uses.
+# Anything else asks first, since the session reads messages written by outside people.
+# shellcheck disable=SC2086
+exec claude "$prompt" \
   --add-dir "$projects" \
-  --permission-mode acceptEdits \
-  --allowedTools "Bash(python3:*) Bash(git:*) Read Write Edit Glob Grep ToolSearch ArtifactData ${CONTEXT_INBOX_TOOLS:-}"
+  --allowedTools \
+  "Bash(python3 $here/connector/check.py:*)" \
+  "Bash(python3 $here/integrations/:*)" \
+  "Bash(python3 $projects/:*)" \
+  "Bash($projects/:*)" \
+  "Bash(git log:*)" "Bash(git add:*)" "Bash(git commit:*)" "Bash(git pull:*)" "Bash(git push:*)" "Bash(git status:*)" \
+  Read Write Edit Glob Grep ToolSearch ArtifactData ${CONTEXT_INBOX_TOOLS:-}
