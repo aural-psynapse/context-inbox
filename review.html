@@ -87,8 +87,16 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 .edited { font-size: 12px; color: var(--fg-2); }
 .msg { font-size: 13px; font-weight: 500; }
 .msg.ok { color: var(--success); } .msg.bad { color: var(--danger); }
-.lastrun { font-size: 12px; color: var(--fg-2); padding: 0 8px; overflow-wrap: anywhere; }
-.lastrun.bad { color: var(--danger); }
+.lastrun { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 2px 8px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); overflow-wrap: anywhere; }
+.lr-icon { width: 16px; height: 16px; margin-top: 1px; color: var(--fg-2); }
+.lastrun.ok .lr-icon { color: var(--success); } .lastrun.bad .lr-icon { color: var(--danger); }
+.lr-title { font-size: 13px; font-weight: 600; color: var(--fg); }
+.lr-when { grid-column: 2; display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-2); }
+.lr-when svg { width: 12px; height: 12px; flex: none; }
+.lr-meta { grid-column: 2; display: flex; gap: 12px; margin-top: 4px; font-size: 12px; color: var(--fg-2); }
+.lr-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.lr-meta b { font-weight: 500; font-size: 12px; line-height: 18px; min-width: 18px; padding: 0 6px; box-sizing: border-box; text-align: center; border-radius: 2em; background: var(--row-sel); color: var(--fg); font-variant-numeric: tabular-nums; }
+.lr-err { grid-column: 2; font-size: 12px; color: var(--danger); }
 .lock { font-size: 12px; font-weight: 500; color: var(--warn); }
 .btn.saved[disabled] { opacity: 1; color: var(--success); border-color: var(--success); }
 .ask textarea { margin-top: 8px; background: var(--panel); font-weight: 400; }
@@ -112,7 +120,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 <div class="app" id="app">
   <aside class="side">
     <div class="brand">Context Inbox</div>
-    <div class="lastrun" id="lastrun">Last run: not yet</div>
+    <div class="lastrun" id="lastrun"><svg class="lr-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/></svg><div class="lr-title">Daily sync</div><div class="lr-meta">Not run yet</div></div>
     <div class="group" id="g-status"><h3>Inbox</h3></div>
     <div class="group" id="g-target"><h3>Where it goes</h3></div>
     <div class="hint">
@@ -304,8 +312,21 @@ document.onkeydown = (e) => {
     const r = snap.docs[0]?.data(); if (!r) return;
     const errs = (r.errors || []).length;
     const el = $("lastrun");
-    el.textContent = `Last run: ${new Date(r.date).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ${r.pushed ?? 0} pushed · ${r.proposed ?? 0} new` + (errs ? ` · ${errs} error${errs > 1 ? "s" : ""}: ${r.errors[0]}` : "");
-    el.className = "lastrun" + (errs ? " bad" : "");
+    const when = new Date(r.date).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const mins = Math.max(0, Math.round((Date.now() - new Date(r.date)) / 60000));
+    const unit = (n, w) => `${n} ${w}${n === 1 ? "" : "s"} ago`;
+    const ago = mins < 1 ? "just now" : mins < 60 ? unit(mins, "minute") : mins < 1440 ? unit(Math.round(mins / 60), "hour") : unit(Math.round(mins / 1440), "day");
+    const cal = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.75 0a.75.75 0 0 1 .75.75V2h5V.75a.75.75 0 0 1 1.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 13.25 16H2.75A1.75 1.75 0 0 1 1 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 0 1 4.75 0ZM2.5 7.5v6.75c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V7.5Zm10.75-4H2.75a.25.25 0 0 0-.25.25V6h11V3.75a.25.25 0 0 0-.25-.25Z"/></svg>`;
+    const icon = errs
+      ? `<svg class="lr-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 110 16A8 8 0 018 0zm2.78 4.22a.75.75 0 00-1.06 0L8 5.94 6.28 4.22a.75.75 0 00-1.06 1.06L6.94 7 5.22 8.72a.75.75 0 101.06 1.06L8 8.06l1.72 1.72a.75.75 0 101.06-1.06L9.06 7l1.72-1.72a.75.75 0 000-1.06z"/></svg>`
+      : `<svg class="lr-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72-4.5 4.5a.75.75 0 01-1.06 0l-2-2a.75.75 0 011.06-1.06L6.75 9.19l3.97-3.97a.75.75 0 011.06 1.06z"/></svg>`;
+    el.title = when;
+    el.innerHTML = icon
+      + `<div class="lr-title">Daily sync</div>`
+      + `<div class="lr-when">${cal}<time>${esc(ago)}</time></div>`
+      + `<div class="lr-meta"><span>Pushed <b>${esc(String(r.pushed ?? 0))}</b></span><span>New <b>${esc(String(r.proposed ?? 0))}</b></span></div>`
+      + (errs ? `<div class="lr-err">${errs} error${errs > 1 ? "s" : ""}: ${esc(String(r.errors[0]))}</div>` : "");
+    el.className = "lastrun " + (errs ? "bad" : "ok");
   }, () => {});
   sub("proposals", pub);
 })();
