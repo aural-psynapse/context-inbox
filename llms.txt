@@ -1,21 +1,26 @@
 # context-inbox
 
-> Reads updates from chat tools, proposes changes to work tools, and writes each change only after a person approves it on a review page.
+> An agent reads new chat messages, drafts cited changes for Linear, Attio and GitHub, and writes each one only after a person approves it on a claude.ai review page.
 
-## Docs
+A run serves one project. The project's `config.json` and `RULES.md` live in a separate private repo. The agent follows AGENTS.md and reads and writes the review page through the ArtifactData tool.
+
+## Run
 
 - [AGENTS.md](AGENTS.md): the daily run, step by step, and the review page collections.
-- [RULES.md](RULES.md): what counts as a proposal, how to write it, and its JSON shape.
+- [RULES.md](RULES.md): what a proposal is, how to write it, and its JSON shape.
 - [config.example.json](config.example.json): the shape of a project's config.
-- [README.md](README.md): what this is, for people.
 
 ## Destinations
 
-- [destinations/linear.md](destinations/linear.md)
-- [destinations/attio.md](destinations/attio.md)
-- [destinations/github.md](destinations/github.md)
+- [destinations/linear.md](destinations/linear.md): issues and comments through the Linear connector.
+- [destinations/attio.md](destinations/attio.md): deal notes and tasks through the Attio connector.
+- [destinations/github.md](destinations/github.md): one commit per item to a docs repo.
 
 ## Code
 
-- [scripts/sources/slack.py](scripts/sources/slack.py): reads new Slack messages for one source.
-- [review.html](review.html): source of the review page.
+- [scripts/sources/slack.py](scripts/sources/slack.py): reads Slack messages newer than each channel's cursor, thread replies included.
+- [review.html](review.html): the review page.
+
+## Optional
+
+- [README.md](README.md): setup and config reference for people.

@@ -1,6 +1,6 @@
 # context-inbox
 
-Turns updates from chat tools into changes in work tools, written only after a person approves each one on a review page.
+Turns chat messages into cited changes for work tools. A person approves each change on a review page before any run writes it. Setup for people is in [README.md](README.md).
 
 A run serves one project. Its folder (in a separate private repo) holds `config.json` and `RULES.md`. Read both first. `config.json` follows [`config.example.json`](config.example.json). `review_page` in it is the page every step below reads and writes, through the ArtifactData tool.
 
@@ -30,3 +30,13 @@ Run the steps in order. Each ends on its done line.
 5. **Log the run.** Write `runs/<UTC start time>`: `{ date, counts: { channel_id: n }, pushed: n, proposed: n, errors: [text] }`. Write it even when a step failed, with the error text.
 
 Nothing reaches a destination without `decision.status == "approved"`. Rejected and waiting items stay as they are.
+
+## Changing this repo
+
+This repo stays generic. It holds no project's names, channel IDs, people or links. Those go in the project's own folder.
+
+- **Reader scripts:** Python 3.9+, standard library only. Check one with `python3 scripts/sources/<type>.py` and no arguments; it prints its usage.
+- **New source:** copy the arguments and the output fields of `scripts/sources/slack.py`, so steps 2 and 3 work unchanged.
+- **New destination:** add `destinations/<type>.md` covering how to write, where `ctx: <item id>` goes, how to search for it, and what `pushed.url` holds. Add the type to `TYPE_COLOR` in `review.html` and to `target` in `RULES.md`.
+- **Review page:** `review.html` is one file with no build step. After a change, take a screenshot in a browser and republish it to the same artifact URL.
+- **Commits:** one line, `type: what changed`. No trailers.
