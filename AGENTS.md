@@ -24,7 +24,7 @@ Run the steps in order. Each ends on its done line.
    Done when every approved item carries `pushed`.
 2. **Read new messages.** For each source, load its cursors from `state/<source id>` into a local file, then run the reader for its type in `scripts/sources/<type>.py` (usage at the top of each script). Keep the updated cursor file; do not save it yet.
    Done when the reader printed a count for every channel.
-3. **Propose.** Turn the new messages into items per [`RULES.md`](RULES.md) and the project's `RULES.md`. A message may feed only the destinations its channel lists in `feeds`. Write each item to `proposals`. An item whose `id` already exists gets updated, never duplicated.
+3. **Propose.** Turn the new messages into items per [`RULES.md`](RULES.md) and the project's `RULES.md`. A message may feed only the destinations its channel lists in `feeds`. Write each item to `proposals`. An item whose `id` already exists gets updated, never duplicated, but only while it has no decision. An item that is approved, rejected or pushed is frozen: never change it. New facts for that record become a new item with id `<old id>--<first new message ts without the dot>`, so a reviewer sees and approves them.
    Done when every new message is cited by an item or plainly not about a client or lead.
 4. **Save cursors.** Replace `state/<source id>` with a `set` whose data is exactly `{ "cursors": { "<channel id>": "<ts>" } }`, nothing wrapped around it. This comes last, so a run that fails earlier re-reads the same messages next time.
 5. **Log the run.** Write `runs/<UTC start time>`: `{ date, counts: { channel_id: n }, pushed: n, proposed: n, errors: [text] }`. Write it even when a step failed, with the error text.

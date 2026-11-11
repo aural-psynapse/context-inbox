@@ -42,6 +42,6 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 }
 ```
 
-- `id` stays the same when the same record comes up again, so a re-read updates the item instead of adding a second one.
+- `id` stays the same when the same record comes up again, so a re-read updates the item instead of adding a second one. Once an item has a decision or `pushed`, it never changes: news about that record goes into a new item, as AGENTS.md step 3 says.
 - `existing` is `null` for new records. `fields` holds only what the action needs.
 - `order` continues after the highest `order` already on the page.
