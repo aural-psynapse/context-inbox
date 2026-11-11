@@ -1,0 +1,19 @@
+{
+  "project": "example",
+  "review_page": "https://claude.ai/artifact/<id>",
+  "sources": [
+    {
+      "id": "slack-example",
+      "type": "slack",
+      "reader": "readers/slack.py",
+      "secret": "SLACK_TOKEN_EXAMPLE",
+      "channels": [
+        { "id": "C0123456789", "feeds": ["linear-example"] },
+        { "id": "D0123456789", "feeds": ["linear-example"], "private": true }
+      ]
+    }
+  ],
+  "destinations": [
+    { "id": "linear-example", "type": "linear", "guide": "guides/linear.md", "team": "ABC" }
+  ]
+}

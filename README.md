@@ -29,24 +29,21 @@ Set up context-inbox for project "acme" following AGENTS.md.
 Read #sales and #support in our Slack. Write deals to HubSpot and bugs to Linear.
 ```
 
-The agent looks up channel IDs, writes any reader or guide that is missing, publishes the review page and runs once. [AGENTS.md](AGENTS.md) has its steps.
+The agent looks up channel IDs, writes a reader for each source and a guide for each destination, publishes the review page and runs once. [AGENTS.md](AGENTS.md) has its steps.
 
 ## Plug in anything
 
-| | Built in | Add your own |
-|---|---|---|
-| **Sources** | Slack | A reader program, or plain instructions for reading through a connector. See [sources/README.md](sources/README.md). |
-| **Destinations** | Linear, Attio, GitHub | A guide of under 20 lines. See [destinations/README.md](destinations/README.md). |
+A source needs a reader: a small program, or plain instructions for the agent to read through a connector. A destination needs a guide: a few lines on how to write to it. Both live in your project folder, and the agent writes them during setup. Routing lives in config: each channel lists the destinations it `feeds`.
 
-Your own readers and guides live in your project folder, so this repo stays untouched. Routing lives in config: each channel lists the destinations it `feeds`.
+[`example/`](example/) is a full project folder: Slack in, Linear out.
 
 ## Set it up by hand
 
-You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.9+ for the built-in reader.
+You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.9+ for the example reader.
 
-1. **Make a project folder** in a private repo of its own: `config.json` shaped like [`config.example.json`](config.example.json), and a `RULES.md` with who is who and what goes where.
+1. **Make a project folder** in a private repo of its own: copy of [`example/`](example/). Edit `config.json`, `RULES.md`, the reader and the guide.
 2. **Publish [`review.html`](review.html)** as a claude.ai artifact with capabilities `{ "user": {}, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }`. Put its URL in `review_page` and share it as Editor with your approvers.
-3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
+3. **Set each source token** in the env var named by its `secret`. The example Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
 4. **Run it** from a session with both repos checked out:
    ```
    Run the daily run in context-inbox/AGENTS.md for project folder <projects repo>/<project>.
@@ -59,15 +56,15 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 |---|---|
 | `review_page` | URL of the published review page. |
 | `sources[].id` | Name for the source. Cursors are stored under it. |
-| `sources[].type` | Picks the built-in reader `sources/<type>.py` when one exists. |
-| `sources[].reader` | Path to your own reader, relative to the project folder. |
+| `sources[].type` | Name of the tool, such as `slack`. |
+| `sources[].reader` | Path to the reader, relative to the project folder. |
 | `sources[].how` | Instructions for the agent to read through a connector instead. |
 | `sources[].secret` | Env var that holds the token. |
 | `sources[].channels[].id` | Exact channel ID, case-sensitive. Names like `#general` are not accepted. |
 | `sources[].channels[].feeds` | Destination ids this channel may write to. |
 | `sources[].channels[].private` | `true` for chats that mix work and personal talk. |
-| `destinations[].type` | Picks the built-in guide `destinations/<type>.md` when one exists. |
-| `destinations[].guide` | Path to your own guide, relative to the project folder. |
+| `destinations[].type` | Name of the tool. The review page colours items by it. |
+| `destinations[].guide` | Path to the guide, relative to the project folder. |
 
 Other keys on a destination, such as `team` or `repo`, are read by its guide.
 
@@ -76,9 +73,7 @@ Other keys on a destination, such as `team` or `repo`, are read by its guide.
 ```
 AGENTS.md              setup and the daily run, step by step
 RULES.md               what a proposal is and its JSON shape
-config.example.json    config shape
-sources/               how to add a source, and built-in readers
-destinations/          how to add a destination, and built-in guides
+example/               a project folder to copy: config, rules, reader, guide
 review.html            the review page
 ```
 

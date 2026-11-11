@@ -2,27 +2,21 @@
 
 > A framework for turning messages from any source into cited changes in any destination. An agent drafts each change, a person approves it on a claude.ai review page, and the next run writes only approved changes.
 
-Each project keeps `config.json` and `RULES.md` in a separate private repo. The config maps channels to destinations. Projects add their own readers and guides there, next to the config.
+Each project keeps a folder in a separate private repo: `config.json`, `RULES.md`, a reader per source and a guide per destination. The config maps channels to destinations.
 
 ## Start here
 
-- [AGENTS.md](AGENTS.md): set up a project, then the daily run, step by step.
+- [AGENTS.md](AGENTS.md): set up a project, the reader and guide formats, and the daily run.
 - [RULES.md](RULES.md): what a proposal is, how to write it, and its JSON shape.
-- [config.example.json](config.example.json): config shape, with built-in, custom and connector sources.
 
-## Plug-in points
+## Example project folder
 
-- [sources/README.md](sources/README.md): reader arguments, message format, and reading through a connector.
-- [destinations/README.md](destinations/README.md): the four things a destination guide must say.
-
-## Built in
-
-- [sources/slack.py](sources/slack.py): Slack reader, thread replies included.
-- [destinations/linear.md](destinations/linear.md): Linear issues and comments.
-- [destinations/attio.md](destinations/attio.md): Attio deal notes and tasks.
-- [destinations/github.md](destinations/github.md): one commit per item to a repo.
-- [review.html](review.html): the review page.
+- [example/config.json](example/config.json): one Slack source feeding one Linear destination.
+- [example/RULES.md](example/RULES.md): people, what counts, what goes where.
+- [example/readers/slack.py](example/readers/slack.py): Slack reader, thread replies included.
+- [example/guides/linear.md](example/guides/linear.md): how to write to Linear.
 
 ## Optional
 
 - [README.md](README.md): overview and manual setup for people.
+- [review.html](review.html): the review page.

@@ -1,7 +1,7 @@
 """Read new Slack messages for one source in a project config.
 
 Usage:
-  python3 sources/slack.py CONFIG SOURCE_ID CURSORS OUT_DIR [--only CHANNEL_ID]
+  python3 readers/slack.py CONFIG SOURCE_ID CURSORS OUT_DIR [--only CHANNEL_ID]
 
 CONFIG     path to the project's config.json
 SOURCE_ID  the "id" of a source with "type": "slack" in that config
