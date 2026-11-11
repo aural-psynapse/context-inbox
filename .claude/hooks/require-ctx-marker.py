@@ -66,7 +66,7 @@ def check(call: dict) -> None:
     here = os.path.realpath(os.environ.get("CLAUDE_PROJECT_DIR", ""))
     outside = os.path.realpath(call.get("cwd", "")) != here or re.search(r"\bcd\s|\bgit\s+(\S+\s+)*-C\s", cmd)
     gh_write = re.search(r"\bgh\s+(issue|pr)\s+(create|comment|edit)\b|\bgh\s+api\b[^|;&\n]*(-X\s*(POST|PATCH|PUT)|--method\s+(POST|PATCH|PUT)|\s-f\s)", cmd)
-    if gh_write and (outside or re.search(r"\s(-R|--repo)[\s=]", cmd)) and "ctx: " not in cmd:
+    if gh_write and (outside or re.search(r"\s(-R|--repo)[\s=]|\bgh\s+api\b", cmd)) and "ctx: " not in cmd:
         block("gh: a write needs `ctx: <item id>` in its body.")
     if not outside:
         return
