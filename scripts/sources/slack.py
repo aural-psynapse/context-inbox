@@ -13,8 +13,9 @@ OUT_DIR    folder for <channel_id>.jsonl, one message per line
 Token: the env var named by the source's "secret". When it is unset (cloud runs),
 requests go out without a token and the network proxy adds it.
 
-Thread replies: every thread whose parent is from the last THREAD_DAYS days is
-re-checked, so a new reply under an older message still arrives.
+Thread replies: every run lists the channel's whole history and pulls replies
+from any thread whose latest reply is newer than the cursor, however old the
+thread is, so no reply is missed.
 """
 
 import json
@@ -25,9 +26,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-
-THREAD_DAYS = 14
-
 
 def make_call(token: str):
     def call(method: str, **params: str) -> dict:
@@ -81,16 +79,14 @@ def main() -> None:
     cursors = json.loads(cursors_file.read_text()) if cursors_file.exists() else {}
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    thread_floor = time.time() - THREAD_DAYS * 86400
 
     for ch in src["channels"]:
         cid = ch["id"]
         if only and cid != only:
             continue
         cursor = float(cursors.get(cid, "0"))
-        oldest = min(cursor, thread_floor) if cursor else 0
-        # Slack ignores an "oldest" with more than 6 decimals and returns nothing.
-        parents = paged("conversations.history", "messages", channel=cid, oldest=f"{oldest:.6f}")
+        # Whole history every run: a reply can land under a thread of any age.
+        parents = paged("conversations.history", "messages", channel=cid)
         rows = [m for m in parents if float(m["ts"]) > cursor]
         for m in parents:
             if m.get("reply_count") and (float(m["ts"]) > cursor or float(m.get("latest_reply", "0")) > cursor):
