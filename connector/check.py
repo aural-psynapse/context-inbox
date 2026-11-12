@@ -199,7 +199,7 @@ def main() -> None:
     root_arg = args[0] if args else os.environ.get("CONTEXT_INBOX_PROJECTS", "")
     if not root_arg or not Path(root_arg).is_dir():
         sys.exit(__doc__)
-    root = Path(root_arg)
+    root = Path(root_arg).resolve()
     only = args[1] if len(args) > 1 else None
     if (root / "config.json").exists() and not only:
         folders = [root]
