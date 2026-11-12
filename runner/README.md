@@ -1,6 +1,6 @@
 # Runner
 
-- `run.sh PROJECTS_DIR PROJECT` checks the project's config, then opens an interactive Claude Code session that runs the daily run once. A session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
+- `run.sh PROJECTS_DIR PROJECT` (or `run.sh PROJECT_DIR`) checks the project's config, then opens an interactive Claude Code session that runs the daily run once. A session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
 - `prompt.txt` is the prompt for a scheduled run.
 
 ## Run on this machine
@@ -25,7 +25,7 @@ A scheduled run with a config error writes a run log entry with the errors and w
 
 ## Start a run from an agent or a script
 
-`fire.sh PROJECTS_DIR PROJECT` starts the project's scheduled task now and prints the link to the run. No person needs to watch.
+`fire.sh PROJECTS_DIR PROJECT` (or `fire.sh PROJECT_DIR`) starts the project's scheduled task now and prints the link to the run. No person needs to watch.
 
 - Put the task's id in `routine` in the project's `config.json`, such as `"routine": "trig_01ABC"`. `RemoteTrigger` with action `list` shows the ids, and so does the task's page on claude.ai.
 - The script asks a background Claude Code session to start the task. That session needs a claude.ai sign-in and nothing else.

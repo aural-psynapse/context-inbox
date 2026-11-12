@@ -10,7 +10,7 @@ CHECK = os.path.join(REPO, "connector", "check.py")
 PAGE = "https://claude.ai/artifact/abc123"
 
 
-def check(cfg, files=()):
+def check(cfg, files=(), single=False):
     with tempfile.TemporaryDirectory() as d:
         p = os.path.join(d, "p")
         os.makedirs(p)
@@ -19,7 +19,7 @@ def check(cfg, files=()):
             open(os.path.join(p, f), "w").close()
         with open(os.path.join(p, "config.json"), "w") as fh:
             fh.write(cfg if isinstance(cfg, str) else json.dumps(cfg))
-        r = subprocess.run([sys.executable, CHECK, d], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, CHECK, p if single else d], capture_output=True, text=True)
         return r.returncode, r.stderr
 
 
@@ -34,6 +34,9 @@ def slack(channels, **extra):
 class ConnectorTest(unittest.TestCase):
     def test_good(self):
         self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"]}]))[0], 0)
+
+    def test_single_project_folder(self):
+        self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"]}]), single=True)[0], 0)
 
     def test_extra_keys_pass(self):
         self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"], "tag": "x"}], base_url="https://x"))[0], 0)

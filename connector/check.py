@@ -2,10 +2,12 @@
 
 Usage:
   python3 connector/check.py PROJECTS_DIR [PROJECT]
+  python3 connector/check.py PROJECT_DIR
   CONTEXT_INBOX_PROJECTS=PROJECTS_DIR python3 connector/check.py
 
 PROJECTS_DIR  folder holding one subfolder per project.
 PROJECT       check only this project folder name.
+PROJECT_DIR   a single project folder, such as a repo that holds one project.
 
 A project folder holds config.json and RULES.md. In config, `reader` and
 `guide` take an integration name (a folder in integrations/, such as "slack")
@@ -199,7 +201,10 @@ def main() -> None:
         sys.exit(__doc__)
     root = Path(root_arg)
     only = args[1] if len(args) > 1 else None
-    folders = sorted(p for p in root.iterdir() if (p / "config.json").exists() and (not only or p.name == only))
+    if (root / "config.json").exists() and not only:
+        folders = [root]
+    else:
+        folders = sorted(p for p in root.iterdir() if (p / "config.json").exists() and (not only or p.name == only))
     if not folders:
         sys.exit(f"no project folder with config.json in {root}" + (f" named {only!r}" if only else ""))
     failed = False

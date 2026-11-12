@@ -113,6 +113,7 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
    ```sh
    python3 connector/check.py <projects repo> <project>
    ```
+   A repo that holds a single project can keep `config.json` at its top level. Then pass the folder alone: `connector/check.py <project folder>`. The runner scripts accept the same.
 2. **Publish [`ui/review.html`](ui/review.html).** Ask Claude Code to publish it as a claude.ai artifact with these capabilities, and put its URL in `review_page`:
    ```json
    { "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }

@@ -1,17 +1,19 @@
 #!/bin/sh
 # Start a project's scheduled cloud run now, with no person in the loop.
-# Usage: runner/fire.sh PROJECTS_DIR PROJECT [--check]
+# Usage: runner/fire.sh PROJECTS_DIR PROJECT [--check], or runner/fire.sh PROJECT_DIR [--check]
 # Reads the scheduled task id from "routine" in the project's config.json and
 # starts it through Claude Code, which must be signed in with a claude.ai account.
 # With CONTEXT_INBOX_FIRE_URL and CONTEXT_INBOX_FIRE_TOKEN set, it calls the
 # task's API trigger instead and needs no Claude Code.
 # --check only confirms the task exists and prints its schedule.
 set -eu
-[ $# -ge 2 ] || { sed -n 2,8p "$0"; exit 2; }
+[ $# -ge 1 ] || { sed -n 2,8p "$0"; exit 2; }
 here=$(cd "$(dirname "$0")/.." && pwd)
-cfg="$1/$2/config.json"
+case "${2:-}" in
+  ""|--check) cfg="$1/config.json"; check=${2:-} ;;
+  *) cfg="$1/$2/config.json"; check=${3:-} ;;
+esac
 id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("routine", ""))' "$cfg")
-check=${3:-}
 
 if [ -n "${CONTEXT_INBOX_FIRE_URL:-}" ] && [ -n "${CONTEXT_INBOX_FIRE_TOKEN:-}" ] && [ "$check" != "--check" ]; then
   out=$(curl -sS --fail-with-body -X POST "$CONTEXT_INBOX_FIRE_URL" \
