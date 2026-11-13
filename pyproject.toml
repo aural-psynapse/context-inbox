@@ -1,6 +1,6 @@
 [project]
 name = "context-inbox"
-version = "1.0.0" # x-release-please-version
+version = "1.1.0" # x-release-please-version
 description = "Turn team chat into updates in your tracker, CRM and docs. An agent drafts every change, a person approves it."
 requires-python = ">=3.10"
 license = "MIT"
