@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/aural-psynapse/context-inbox/compare/v1.0.0...v1.1.0) (2026-11-13)
+
+
+### Features
+
+* accept a single project folder in check.py, run.sh and fire.sh ([01e3a27](https://github.com/aural-psynapse/context-inbox/commit/01e3a27d3106fd4d7739ff43875b7b06ae06144f))
+
+
+### Bug Fixes
+
+* name the project when check.py gets a relative folder ([ee86a41](https://github.com/aural-psynapse/context-inbox/commit/ee86a41268e672b17e4e72566156e3eb3c26f2a4))
+
 ## [1.0.0](https://github.com/aural-psynapse/context-inbox/compare/v0.5.0...v1.0.0) (2026-11-11)
 
 First public release. The config format, the item shape and the reader and guide formats are now stable. A change that breaks them will raise the first number.
