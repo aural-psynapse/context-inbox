@@ -8,6 +8,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 - Every item cites at least one message: author, date, link, and a verbatim quote of at most 2 sentences.
 - A fact without a citation does not exist. Deal sizes, dates, names and statuses come from a cited message or stay out.
 - A message feeds only the destinations its channel lists in `feeds`.
+- Fill the whole record, not only its notes. Before proposing for a destination, read its guide's "A complete record" list and the record's current fields. Every fact a cited message gives for an empty or outdated field goes into `fields.set` on the same item, beside the note. When the messages give several possible values, such as price tiers, set `unsure: true` and ask which one in `question`.
 - A file shared in a message counts as part of that message. Read each file's `text` and propose from it as from the message text. Cite the message, and quote the file when the fact comes from it. When the file is a document the record should keep, such as a proposal, contract, brief or rate card, list it in `fields.files` so the write attaches it. Skip screenshots and images unless the message says they matter. A file whose `text` is empty and whose `note` names a document in another tool gets an `unsure` item asking the reviewer to paste what matters, when the message around it matters.
 - Unsure whether a message matters to a destination it feeds: write the item with `"unsure": true` and one plain `question` for the reviewer. Every such message gets an item.
 - Channels marked `private` are one-to-one chats that also hold personal talk. Take only messages that matter to the destinations the channel feeds. Skip everything else entirely: no quote, no paraphrase, no hint it exists. When a message mixes both, quote only the work sentence. When unsure, leave it out.
@@ -32,7 +33,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   "existing": { "id": "...", "url": "..." },
   "title": "Short title of the record or change",
   "body": "Exact text to write",
-  "fields": { "paths": ["every file the commit will touch"], "stage": "...", "assignee": "...", "due": "YYYY-MM-DD", "files": [{ "source": "<source id>", "id": "<file id>", "name": "file name" }] },
+  "fields": { "paths": ["every file the commit will touch"], "stage": "...", "assignee": "...", "due": "YYYY-MM-DD", "set": { "<field slug>": "<new value>" }, "files": [{ "source": "<source id>", "id": "<file id>", "name": "file name" }] },
   "citations": [
     { "date": "YYYY-MM-DD HH:MM", "author": "Name", "channel": "<channel id>", "ts": "<message ts>", "quote": "verbatim", "link": "https://..." }
   ],

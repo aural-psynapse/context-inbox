@@ -7,3 +7,11 @@ Commit to the destination's `repo` on its `branch`, one commit per item, then pu
 - Commit message: one line, `docs: <item title> (ctx: <item id>)`. No trailers and no message body.
 - Search with `git log --grep "ctx: <item id>"`.
 - `pushed.url` is the commit URL.
+
+## A complete record
+
+A commit holds the files in `fields.paths` and the one-line message above. It has no other fields, so `fields.set` stays empty.
+
+Docs: the target repo's README and AGENTS.md
+
+Docs checked: 2026-11-16

@@ -77,6 +77,7 @@ A guide adds only what is specific to the tool:
 2. How each `action` maps to a record.
 3. Where the marker goes, and where to search for it.
 4. Which URL counts as the record's URL.
+5. **A complete record**: the fields a record should hold, how to read the live field list, the public doc pages that list fields, and a `Docs checked: YYYY-MM-DD` line.
 
 ## Review page collections
 
@@ -95,11 +96,13 @@ An item is **decided** when `decision.status` is `approved` or `rejected`, or wh
 Run the steps in order. Each ends on its done line.
 
 0. **Check.** Run `python3 connector/check.py <projects repo> <project>`. Exit 1: write a `runs` doc with its errors, write nothing else, and stop. Otherwise keep its output: it gives each reader command and each guide path. Then read the project's `RULES.md`.
+   For each guide whose `Docs checked` date is more than 7 days old, read the doc pages it links. When a page lists a field the guide's "A complete record" list lacks, add `Guide out of date: <guide>, <field>, <page>` to the run's `errors`, so a person updates the guide and its date.
 
 1. **Push approved items.** Read `proposals`. For each item with `decision.status == "approved"` and no `pushed`, one at a time:
    1. Read the destination's guide at its `guide_path`.
    2. Search the destination for `ctx: <item id>` as the guide says. A hit means an earlier run already wrote it: skip the write.
    3. Otherwise write it, using `decision.body` when present, else `body`, with the marker where the guide puts it. Read `decision.comment` first: it may change what to write.
+   When the item lists `fields.set`, write each field on the record the way the guide says, in the same push.
    When the item lists `fields.files`, download each one with its source's `download.py` into a temporary folder and attach it to the record the way the guide says. Delete the downloads after the item is saved.
    4. Save `pushed: { at, url }` on that item right away, in its own write, before touching the next item.
    Done when every approved item carries `pushed`.
