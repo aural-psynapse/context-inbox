@@ -36,7 +36,7 @@ class SlackFilesTest(unittest.TestCase):
             {"name": "n.md", "title": "Notes", "filetype": "markdown", "url_private": "u", "permalink": "p"},
             b"# Hi\nthere",
         )
-        self.assertEqual(out, {"name": "Notes", "type": "markdown", "link": "p", "text": "# Hi\nthere"})
+        self.assertEqual(out, {"id": "", "name": "Notes", "type": "markdown", "link": "p", "text": "# Hi\nthere"})
 
     def test_docx(self):
         out = self.read(

@@ -14,5 +14,5 @@ The Slack token needs `files:read` so the reader can read files shared in messag
 | Recipe | Destination in `config.json` | Line in `RULES.md` | Also needs |
 |---|---|---|---|
 | Slack to Linear | `{ "id": "linear-acme", "type": "linear", "guide": "linear", "team": "ACM" }` | Bug reports and feature requests go to linear-acme, one issue each, in project "Customer requests". | Linear connector |
-| Slack to Attio | `{ "id": "attio-acme", "type": "attio", "guide": "attio", "workspace": "acme" }` | Leads, deals and follow-ups go to attio-acme, one deal per company. | Attio connector. `im:history` on the Slack token for a private DM, marked `"private": true`. |
+| Slack to Attio | `{ "id": "attio-acme", "type": "attio", "guide": "attio", "workspace": "acme" }` | Leads, deals and follow-ups go to attio-acme, one deal per company. | Attio connector. An Attio API token in `secret` to attach files. `im:history` on the Slack token for a private DM, marked `"private": true`. |
 | Slack to GitHub | `{ "id": "docs-acme", "type": "github", "guide": "github", "repo": "acme/docs", "branch": "main" }` | Client decisions go to docs-acme as a new file in `decisions/`, named by date and topic. | Push access to the repo, and the repo cloned in the run |

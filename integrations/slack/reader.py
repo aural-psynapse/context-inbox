@@ -118,8 +118,16 @@ def file_of(f: dict, call, token: str) -> dict:
         try:
             f = call("files.info", file=f["id"])["file"]
         except Exception as e:
-            return {"name": f.get("id", "?"), "type": "", "link": "", "text": "", "note": f"files.info failed: {e}"}
+            return {
+                "id": f.get("id", ""),
+                "name": "?",
+                "type": "",
+                "link": "",
+                "text": "",
+                "note": f"files.info failed: {e}",
+            }
     out = {
+        "id": f.get("id", ""),
         "name": f.get("title") or f.get("name") or "?",
         "type": f.get("filetype", ""),
         "link": f.get("permalink", ""),
