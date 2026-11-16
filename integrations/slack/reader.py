@@ -21,21 +21,37 @@ Cursor: the newest message read, but never later than the moment this run
 started, so a message posted while the run is reading comes back next time.
 A message edited after it was read keeps its time and is not read again.
 
+Files: each file shared in a message comes back with its text. The reader
+downloads plain text, Word (.docx), PDF (needs pdftotext on PATH) and Slack
+canvases, and keeps the first 20,000 characters. A file it cannot read, such as
+an image or a Google Doc link, gets an empty "text" and a "note" saying why.
+The token needs the files:read scope. In cloud runs, store the token as a
+network secret for files.slack.com as well as slack.com.
+
 A channel that fails keeps its old cursor and gets no output file. The other
 channels still run. The script then exits 1.
 """
 
+import html
+import io
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from pathlib import Path
 
 TIMEOUT = 30
 MAX_RETRIES = 8
+MAX_FILE_BYTES = 20_000_000
+MAX_FILE_CHARS = 20_000
+TEXT_TYPES = {"text", "markdown", "csv", "tsv", "json", "xml", "yaml", "html", "email", "post"}
 
 
 def make_call(token: str):
@@ -57,6 +73,85 @@ def make_call(token: str):
         raise RuntimeError(f"{method}: rate limited {MAX_RETRIES} times")
 
     return call
+
+
+def fetch(url: str, token: str) -> bytes:
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"} if token else {})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        return r.read(MAX_FILE_BYTES + 1)
+
+
+def strip_tags(markup: str) -> str:
+    markup = re.sub(r"(?is)<(script|style)\b.*?</\1>", "", markup)
+    markup = re.sub(r"(?i)<br\s*/?>|</(p|div|h[1-6]|li|tr)>", "\n", markup)
+    return html.unescape(re.sub(r"<[^>]+>", "", markup))
+
+
+def docx_text(data: bytes) -> str:
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        xml = z.read("word/document.xml").decode("utf-8", "replace")
+    xml = re.sub(r"</w:p>", "\n", xml)
+    xml = re.sub(r"<w:tab/>", "\t", xml)
+    return html.unescape(re.sub(r"<[^>]+>", "", xml))
+
+
+def pdf_text(data: bytes) -> str:
+    if not shutil.which("pdftotext"):
+        raise RuntimeError("PDF needs pdftotext on PATH")
+    r = subprocess.run(["pdftotext", "-q", "-", "-"], input=data, capture_output=True, timeout=TIMEOUT, check=True)
+    return r.stdout.decode("utf-8", "replace")
+
+
+def file_of(f: dict, call, token: str) -> dict:
+    """One shared file: name, type, link, and its text when the reader can read it."""
+    if f.get("file_access") == "check_file_info":
+        try:
+            f = call("files.info", file=f["id"])["file"]
+        except Exception as e:
+            return {"name": f.get("id", "?"), "type": "", "link": "", "text": "", "note": f"files.info failed: {e}"}
+    out = {
+        "name": f.get("title") or f.get("name") or "?",
+        "type": f.get("filetype", ""),
+        "link": f.get("permalink", ""),
+        "text": "",
+    }
+    kind, mime = out["type"], f.get("mimetype", "")
+    url = f.get("url_private_download") or f.get("url_private")
+    if f.get("is_external"):
+        out["note"] = f"external file ({f.get('external_type') or 'link'}), read it through its own tool"
+        return out
+    if not url:
+        out["note"] = "no download link"
+        return out
+    if (f.get("size") or 0) > MAX_FILE_BYTES:
+        out["note"] = "file too large to read"
+        return out
+    readable = kind in TEXT_TYPES or mime.startswith("text/") or kind in ("docx", "pdf", "quip", "canvas")
+    if not readable:
+        out["note"] = "not a text file"
+        return out
+    try:
+        data = fetch(url, token)
+        if len(data) > MAX_FILE_BYTES:
+            out["note"] = "file too large to read"
+            return out
+        if kind == "docx":
+            text = docx_text(data)
+        elif kind == "pdf":
+            text = pdf_text(data)
+        elif kind in ("html", "quip", "canvas") or mime == "text/html":
+            text = strip_tags(data.decode("utf-8", "replace"))
+        else:
+            text = data.decode("utf-8", "replace")
+    except Exception as e:  # one unreadable file must not drop the message
+        out["note"] = f"could not read: {e}"
+        return out
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if len(text) > MAX_FILE_CHARS:
+        text = text[:MAX_FILE_CHARS]
+        out["note"] = f"cut to the first {MAX_FILE_CHARS} characters"
+    out["text"] = text
+    return out
 
 
 def text_of(m: dict) -> str:
@@ -84,7 +179,8 @@ def main() -> None:
     src = next((s for s in cfg.get("sources", []) if s.get("id") == source_id), None)
     if not src:
         sys.exit(f"no source with id {source_id!r} in {config}")
-    call = make_call(os.environ.get(src.get("secret", ""), ""))
+    token = os.environ.get(src.get("secret", ""), "")
+    call = make_call(token)
 
     def paged(method: str, key: str, **params: str) -> list:
         out, cursor = [], ""
@@ -148,7 +244,7 @@ def main() -> None:
                                 m.get("user", ""), m.get("username") or (m.get("bot_profile") or {}).get("name") or "?"
                             ),
                             "text": text_of(m),
-                            "files": [x.get("name") for x in m.get("files", [])],
+                            "files": [file_of(x, call, token) for x in m.get("files", [])],
                             "link": link,
                         },
                         ensure_ascii=False,

@@ -53,6 +53,14 @@ A message edited after it was read is not read again. Each line:
 
 `private` and `feeds` copy the channel's config. `ts` is unique within the channel. `date` is UTC. `link` opens the message itself, inside its thread for a reply.
 
+`files` holds one object per file shared in the message:
+
+```json
+{ "name": "", "type": "", "link": "", "text": "", "note": "" }
+```
+
+`text` is the file's text, cut to a length the reader picks. A reader that cannot read a file leaves `text` empty and says why in `note`, such as an image or a link to a document in another tool. `note` is left out when there is nothing to say.
+
 ## Destinations
 
 Each destination in config sets `guide`: an integration name such as `attio` (reads `integrations/attio/guide.md`), or a path to a Markdown file in the project folder.

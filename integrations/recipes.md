@@ -9,6 +9,8 @@ Every recipe uses this source. List each channel with the destinations it `feeds
   "channels": [ { "id": "C0123456789", "feeds": ["linear-acme"] } ] } ]
 ```
 
+The Slack token needs `files:read` so the reader can read files shared in messages. In cloud runs, store it as a network secret for `files.slack.com` as well as `slack.com`.
+
 | Recipe | Destination in `config.json` | Line in `RULES.md` | Also needs |
 |---|---|---|---|
 | Slack to Linear | `{ "id": "linear-acme", "type": "linear", "guide": "linear", "team": "ACM" }` | Bug reports and feature requests go to linear-acme, one issue each, in project "Customer requests". | Linear connector |
