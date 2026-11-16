@@ -77,8 +77,18 @@ def make_call(token: str):
 
 def fetch(url: str, token: str) -> bytes:
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"} if token else {})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        return r.read(MAX_FILE_BYTES + 1)
+    for attempt in range(MAX_RETRIES):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                return r.read(MAX_FILE_BYTES + 1)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < MAX_RETRIES - 1:
+                time.sleep(int(e.headers.get("Retry-After", "5")))
+                continue
+            if e.code == 403:
+                raise RuntimeError("403 Forbidden, the token likely lacks files:read") from e
+            raise
+    raise RuntimeError(f"rate limited {MAX_RETRIES} times")
 
 
 def strip_tags(markup: str) -> str:
