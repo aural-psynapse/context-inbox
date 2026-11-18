@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/aural-psynapse/context-inbox/compare/v1.1.0...v1.2.0) (2026-11-18)
+
+
+### Features
+
+* attach documents shared in Slack to Linear issues and Attio deals ([2b552c7](https://github.com/aural-psynapse/context-inbox/commit/2b552c78f848e143b5ac70c2143064be22122164))
+* fill every record field, not only notes ([c196466](https://github.com/aural-psynapse/context-inbox/commit/c196466f27ceb0453132a8439b1b512bd0bf5c87))
+* read the text of files shared in Slack messages ([8ab3c6d](https://github.com/aural-psynapse/context-inbox/commit/8ab3c6da6a73272a1cd8709ad2209560a27bd11e))
+
+
+### Bug Fixes
+
+* retry rate-limited Slack file downloads and name the missing scope on 403 ([5ec3ded](https://github.com/aural-psynapse/context-inbox/commit/5ec3ded924740247c0c7d8a1401bda57c74ab27d))
+
 ## [1.1.0](https://github.com/aural-psynapse/context-inbox/compare/v1.0.0...v1.1.0) (2026-11-13)
 
 
