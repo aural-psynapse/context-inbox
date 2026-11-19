@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/aural-psynapse/context-inbox/compare/v1.2.0...v1.2.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* apply the reviewer's answer when pushing an approved question item ([#3](https://github.com/aural-psynapse/context-inbox/issues/3)) ([8d4cbdc](https://github.com/aural-psynapse/context-inbox/commit/8d4cbdcd8d253adb56a110e094ef4ca47105a7d4))
+
 ## [1.2.0](https://github.com/aural-psynapse/context-inbox/compare/v1.1.0...v1.2.0) (2026-11-18)
 
 
