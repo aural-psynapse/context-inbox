@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/aural-psynapse/context-inbox/compare/v1.2.1...v1.2.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* log only failures as run errors ([#5](https://github.com/aural-psynapse/context-inbox/issues/5)) ([f252ee0](https://github.com/aural-psynapse/context-inbox/commit/f252ee016a9bbe8aa9ec4ebd811b730eaa40e43d))
+
 ## [1.2.1](https://github.com/aural-psynapse/context-inbox/compare/v1.2.0...v1.2.1) (2026-11-19)
 
 
