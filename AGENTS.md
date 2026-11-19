@@ -115,7 +115,7 @@ Run the steps in order. Each ends on its done line.
    Skip a message that an existing item already cites, by channel and `ts`. A reader can return a message twice when it was posted during the previous run.
    Done when every new message is cited by an item or plainly off topic for every destination it feeds, and every answer is applied.
 4. **Save cursors.** Replace `state/<source id>` with a `set` whose data is exactly `{ "cursors": { "<channel id>": "<cursor>" } }`, nothing wrapped around it. This comes last, so a run that fails earlier re-reads the same messages next time.
-5. **Log the run.** Write `runs/<UTC start time>`: `{ date, counts: { channel_id: n }, pushed: n, proposed: n, errors: [text] }`. `date` is the run's start as an ISO 8601 UTC timestamp, such as `2026-01-31T06:00:00Z`. Write it even when a step failed, with the error text.
+5. **Log the run.** Write `runs/<UTC start time>`: `{ date, counts: { channel_id: n }, pushed: n, proposed: n, errors: [text] }`. `date` is the run's start as an ISO 8601 UTC timestamp, such as `2026-01-31T06:00:00Z`. Write it even when a step failed, with the error text. `errors` holds only failures: a step, reader, write or check that did not work. A step with nothing to do, such as a destination with no approved items, is not an error.
 
 Nothing reaches a destination without `decision.status == "approved"`. Rejected and waiting items stay as they are.
 
