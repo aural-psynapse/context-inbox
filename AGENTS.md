@@ -102,6 +102,7 @@ Run the steps in order. Each ends on its done line.
    1. Read the destination's guide at its `guide_path`.
    2. Search the destination for `ctx: <item id>` as the guide says. A hit means an earlier run already wrote it: skip the write.
    3. Otherwise write it, using `decision.body` when present, else `body`, with the marker where the guide puts it. Read `decision.comment` first: it may change what to write.
+   When the item carries `unsure: true` and a `decision.comment`, the comment answers its `question`. Apply the answer first: when the question proposed field values and the answer accepts them, write those values as `fields.set`.
    When the item lists `fields.set`, write each field on the record the way the guide says, in the same push.
    When the item lists `fields.files`, download each one with its source's `download.py` into a temporary folder and attach it to the record the way the guide says. Delete the downloads after the item is saved.
    4. Save `pushed: { at, url }` on that item right away, in its own write, before touching the next item.
