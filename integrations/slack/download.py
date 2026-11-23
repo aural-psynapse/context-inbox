@@ -14,7 +14,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from reader import fetch, make_call
+from scratch import scratch_path  # noqa: E402
 
 
 def main() -> None:
@@ -32,7 +34,7 @@ def main() -> None:
         sys.exit(f"{file_id}: no downloadable copy in Slack")
     data = fetch(url, token)
     name = re.sub(r"[^\w.\- ]", "_", f.get("name") or file_id).strip() or file_id
-    out = Path(out_dir)
+    out = scratch_path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     path = out / name
     path.write_bytes(data)

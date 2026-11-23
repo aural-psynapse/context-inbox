@@ -16,3 +16,36 @@ The Slack token needs `files:read` so the reader can read files shared in messag
 | Slack to Linear | `{ "id": "linear-acme", "type": "linear", "guide": "linear", "team": "ACM" }` | Bug reports and feature requests go to linear-acme, one issue each, in project "Customer requests". | Linear connector |
 | Slack to Attio | `{ "id": "attio-acme", "type": "attio", "guide": "attio", "workspace": "acme" }` | Leads, deals and follow-ups go to attio-acme, one deal per company. | Attio connector. An Attio API token in `secret` to attach files. `im:history` on the Slack token for a private DM, marked `"private": true`. |
 | Slack to GitHub | `{ "id": "docs-acme", "type": "github", "guide": "github", "repo": "acme/docs", "branch": "main" }` | Client decisions go to docs-acme as a new file in `decisions/`, named by date and topic. | Push access to the repo, and the repo cloned in the run |
+
+## Cal.com bookings as a source
+
+A source of type `calcom` reads new bookings, and each cancellation, move or confirmation of one, as messages. A channel id is an event type slug, or `all` for every booking.
+
+```json
+"sources": [ { "id": "cal-acme", "type": "calcom", "reader": "calcom", "secret": "CAL_API_KEY_ACME",
+  "channels": [ { "id": "intro-call", "feeds": ["attio-acme"] } ] } ]
+```
+
+The secret holds a Cal.com API key, which starts with `cal_`, made under Settings, Developer, API keys. In cloud runs, store it as a network secret for `api.cal.com`.
+
+## Gmail as a source
+
+A source of type `gmail` reads emails that match a Gmail search. Each channel has a short `id` and a `query`.
+
+```json
+"sources": [ { "id": "mail-acme", "type": "gmail", "reader": "gmail", "secret": "GMAIL_ACME",
+  "channels": [ { "id": "sales", "query": "to:sales@acme.com", "feeds": ["attio-acme"] } ] } ]
+```
+
+The secret holds JSON `{"client_id", "client_secret", "refresh_token"}` from a Google OAuth client with the `gmail.readonly` scope, or a short-lived access token. In cloud runs, store it as a network secret for `gmail.googleapis.com` and `oauth2.googleapis.com`.
+
+## Reminders after a write
+
+Add `reminder_days` to a destination, and each item written there gets reminder drafts on those days after it was written. Each draft waits for approval like any other item. The project's `RULES.md` says what the reminders say and what stops them.
+
+```json
+"destinations": [ { "id": "gmail-acme", "type": "gmail", "guide": "gmail", "send_as": "sales@acme.com",
+  "secret": "GMAIL_ACME_SEND", "reminder_days": [3, 7, 14] } ]
+```
+
+Line in `RULES.md`: Reminders to a shop say one new thing each, are sent as replies to the first email, and stop when the shop replies or books a call.

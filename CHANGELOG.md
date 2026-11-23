@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.4.1](https://github.com/aural-psynapse/context-inbox/compare/v1.4.0...v1.4.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* lint errors in the new tests and the Gmail sender ([79ba04d](https://github.com/aural-psynapse/context-inbox/commit/79ba04d1a08923c143bdf046f6e373f860371cf9))
+
+## [1.4.0](https://github.com/aural-psynapse/context-inbox/compare/v1.3.0...v1.4.0) (2026-11-23)
+
+
+### Features
+
+* a company note can carry its contact ([1664e18](https://github.com/aural-psynapse/context-inbox/commit/1664e189c9f5e1e61be5ad32a9a3bce1c432a4eb))
+* act on each review decision at once from the local review page ([889f04b](https://github.com/aural-psynapse/context-inbox/commit/889f04be4a2aed93c75b75f2eb58701ea9f5db61))
+* Attio guide writes company notes, new deals and contacts ([5373dab](https://github.com/aural-psynapse/context-inbox/commit/5373dab90ef0d888cea0972ee2238b7eb6eb240d))
+* Cal.com bookings reader ([ba5843b](https://github.com/aural-psynapse/context-inbox/commit/ba5843bcccc2ba01b397a5b0c85b27459d5bc29f))
+* Gmail destination stops at a daily limit ([20548b4](https://github.com/aural-psynapse/context-inbox/commit/20548b43f2548d4fe569e914e962fd2e5f568105))
+* Gmail destination that sends each approved email once from a send-as address ([b7fa506](https://github.com/aural-psynapse/context-inbox/commit/b7fa5063a4ae0a33b912b385b5180020f4b07fe2))
+* Gmail reader with attachment text ([f37bb68](https://github.com/aural-psynapse/context-inbox/commit/f37bb682a7c100915665e2a6c0721121d3368fe8))
+* old badge for late items and regular runs while the local review page is up ([30ded4c](https://github.com/aural-psynapse/context-inbox/commit/30ded4c752d3070cbc0a4bc79335d09b43fa1380))
+* timed reminder drafts after a write, set per destination ([c58ff9e](https://github.com/aural-psynapse/context-inbox/commit/c58ff9ef8259f555e696a32ecb2d0b86921dc6a8))
+
 ## [1.3.0](https://github.com/aural-psynapse/context-inbox/compare/v1.2.2...v1.3.0) (2026-11-23)
 
 

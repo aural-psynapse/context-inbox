@@ -135,7 +135,8 @@ def write(db: str, collection: str, doc_id: str, change) -> dict | None:
 
 def text_rev(doc: dict) -> str:
     """A fingerprint of everything a reviewer sees on an item. Equal text gives an equal fingerprint, always."""
-    seen = {k: v for k, v in doc.items() if k not in ("id", "decision", "pushed", "rev")}
+    # `publishing` is the destination's own progress note, added after approval, so it is not text the reviewer saw.
+    seen = {k: v for k, v in doc.items() if k not in ("id", "decision", "pushed", "rev", "publishing")}
     return hashlib.sha256(json.dumps(seen, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
 
 

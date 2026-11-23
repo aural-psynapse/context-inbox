@@ -2,6 +2,7 @@
 
 Usage:
   python3 integrations/sqlite/serve.py DB [--port 47821] [--host 127.0.0.1]
+      [--on-decide COMMAND] [--every MINUTES --run COMMAND]
 
 Open http://127.0.0.1:47821 to review. Stop it with Ctrl-C. The items stay in
 DB, and a run reads and writes DB with store.py whether this is up or not.
@@ -11,11 +12,24 @@ keep the default host, or put the address behind a login you already have.
 
 The page can change one thing: the `decision` on an item that is not written
 yet. It never sees the saved cursors.
+
+--on-decide: after each saved decision, start COMMAND with the item id added as
+its last argument, without waiting for it. runner/act.sh is the command that
+pushes an approved item at once, or rewrites a draft from a typed instruction.
+
+--every with --run: while the page is up, start COMMAND every MINUTES minutes, so
+new messages become items without waiting for the daily run. A run still going
+when the next one is due is left to finish; the next starts after it.
+runner/read-now.sh is that command.
 """
 
 import argparse
 import json
+import shlex
+import subprocess
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -29,6 +43,16 @@ MAX_BODY = 1_000_000
 
 class Handler(BaseHTTPRequestHandler):
     db = ""
+    on_decide: list = []
+
+    def act(self, doc_id: str) -> None:
+        """Start the on-decide command for one item and return at once."""
+        if not self.on_decide:
+            return
+        try:
+            subprocess.Popen([*self.on_decide, doc_id], stdin=subprocess.DEVNULL, start_new_session=True)
+        except OSError as e:
+            print(f"on-decide failed for {doc_id}: {e}", file=sys.stderr)
 
     def log_message(self, fmt, *args):
         # The page asks every 5 seconds. Log only what changes something or fails.
@@ -85,15 +109,36 @@ class Handler(BaseHTTPRequestHandler):
         doc_id = unquote(path[len("/api/proposals/") :])
 
         try:
-            self.send_json(200, store.write(self.db, "proposals", doc_id, store.page_change(decision)))
+            saved = store.write(self.db, "proposals", doc_id, store.page_change(decision))
         except store.Refused as e:
             self.send_json(409, {"error": str(e)})
         except store.StoreError as e:
             self.send_json(404, {"error": str(e)})
+        else:
+            self.send_json(200, saved)
+            if decision.get("status") in ("approved", "rejected") or decision.get("comment"):
+                self.act(doc_id)
 
 
-def make_server(db: str, host: str = "127.0.0.1", port: int = 47821) -> ThreadingHTTPServer:
-    handler = type("ReviewHandler", (Handler,), {"db": db})
+def run_every(minutes: float, command: str, stop: threading.Event) -> threading.Thread:
+    """Start `command` now and then every `minutes`, one run at a time, until `stop` is set."""
+
+    def loop() -> None:
+        while not stop.is_set():
+            started = time.monotonic()
+            try:
+                subprocess.run(shlex.split(command), stdin=subprocess.DEVNULL, check=False)
+            except OSError as e:
+                print(f"--run failed: {e}", file=sys.stderr)
+            stop.wait(max(0.0, minutes * 60 - (time.monotonic() - started)))
+
+    thread = threading.Thread(target=loop, daemon=True)
+    thread.start()
+    return thread
+
+
+def make_server(db: str, host: str = "127.0.0.1", port: int = 47821, on_decide: str = "") -> ThreadingHTTPServer:
+    handler = type("ReviewHandler", (Handler,), {"db": db, "on_decide": shlex.split(on_decide)})
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -102,14 +147,23 @@ def main() -> None:
     ap.add_argument("db")
     ap.add_argument("--port", type=int, default=47821)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--on-decide", default="", help="command started with the item id after each decision")
+    ap.add_argument("--every", type=float, help="minutes between runs of --run")
+    ap.add_argument("--run", default="", help="command that reads new messages, such as runner/read-now.sh")
     a = ap.parse_args()
-    server = make_server(a.db, a.host, a.port)
+    if bool(a.every) != bool(a.run):
+        ap.error("--every and --run go together")
+    server = make_server(a.db, a.host, a.port, a.on_decide)
+    stop = threading.Event()
+    if a.run:
+        run_every(a.every, a.run, stop)
     print(f"Review page: http://{a.host}:{a.port}  (Ctrl-C stops it, the items stay in {a.db})")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        stop.set()
         server.server_close()
 
 

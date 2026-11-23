@@ -30,7 +30,7 @@ SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
 URL = re.compile(r"^https?://[^\s<>]+$")
 PLACEHOLDER = re.compile(r"replace|example|00000000")
-TOP_KEYS = {"project", "review_page", "review_store", "routine", "sources", "destinations"}
+TOP_KEYS = {"project", "review_page", "review_store", "routine", "old_after_hours", "sources", "destinations"}
 TYPOS = {
     "feed": "feeds",
     "channel": "channels",
@@ -107,6 +107,10 @@ def check(project: Path) -> dict:
     routine = cfg.get("routine")
     if routine is not None and (not isinstance(routine, str) or not re.match(r"^trig_[A-Za-z0-9]+$", routine)):
         errors.append("routine must be a scheduled task id like trig_01ABC")
+    old_after = cfg.get("old_after_hours", 24)
+    if isinstance(old_after, bool) or not isinstance(old_after, int | float) or old_after <= 0:
+        errors.append("old_after_hours must be a number of hours above 0, such as 24")
+    out["old_after_hours"] = old_after
 
     dests: dict = {}
     raw_dests = cfg.get("destinations")
@@ -127,6 +131,14 @@ def check(project: Path) -> dict:
             continue
         if not isinstance(d.get("type"), str) or not d.get("type"):
             errors.append(f"{label}: type missing")
+        days = d.get("reminder_days")
+        if days is not None and not (
+            isinstance(days, list)
+            and days
+            and all(isinstance(n, int) and not isinstance(n, bool) and n > 0 for n in days)
+            and days == sorted(set(days))
+        ):
+            errors.append(f"{label}: reminder_days must list whole days in rising order, such as [3, 7, 14]")
         guide = resolve(project, d.get("guide", d.get("type")), "guide", errors, label)
         dests[did] = {**d, "guide_path": str(guide) if guide else None}
         if "tools" in d:

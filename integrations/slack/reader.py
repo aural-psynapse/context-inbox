@@ -47,6 +47,9 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scratch import scratch_path  # noqa: E402
+
 TIMEOUT = 30
 MAX_RETRIES = 8
 MAX_FILE_BYTES = 20_000_000
@@ -214,7 +217,8 @@ def main() -> None:
 
     base = call("auth.test")["url"].rstrip("/")
     users = {u["id"]: (u.get("real_name") or u["name"]) for u in paged("users.list", "members")}
-    cursors_file = Path(cursors_path)
+    cursors_file = scratch_path(cursors_path)
+    out_dir = str(scratch_path(out_dir))
     raw = cursors_file.read_text().strip() if cursors_file.exists() else ""
     cursors = json.loads(raw) if raw else {}
     out = Path(out_dir)

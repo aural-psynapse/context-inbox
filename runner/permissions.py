@@ -47,7 +47,7 @@ def main() -> None:
         if download.is_file() and HERE in download.parents:
             allow.append(f"Bash(python3 {download}:*)")
             programs.append(download)
-    allow += [f"Bash(git {verb}:*)" for verb in ("log", "add", "commit", "pull", "push", "status")]
+    # No git: `git log --output=<file>` and similar would let the run overwrite any program above.
     allow += ["Read", "Write", "Edit", "Glob", "Grep", "ToolSearch", "ArtifactData", "mcp__context-inbox"]
     allow += os.environ.get("CONTEXT_INBOX_TOOLS", "").split()
     locked = [HERE / "**", project / "review.db", project / "review.db-*", *programs]

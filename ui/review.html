@@ -50,6 +50,9 @@ kbd { font: 500 11px var(--font); border: 1px solid var(--border); border-radius
 .row .sub span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .date { color: var(--fg-2); font-size: 12px; font-variant-numeric: tabular-nums; }
 .icon { width: 14px; height: 14px; margin-top: 3px; }
+.spin { animation: spin 0.9s linear infinite; transform-origin: 50% 50%; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
 .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--fg); white-space: nowrap; }
 .empty { padding: 48px 24px; text-align: center; color: var(--fg-2); }
 /* detail */
@@ -145,7 +148,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 </div>
 
 <script>
-const S = { view: "items", runs: [], run: null, docs: [], status: "pending", target: "all", cur: null, editing: false, store: null, draft: {}, saving: null, err: null };
+const S = { view: "items", runs: [], run: null, docs: [], status: "pending", target: "all", cur: null, editing: false, store: null, draft: {}, saving: null, err: null, hold: new Set() };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TYPE_COLOR = { linear: "var(--t-linear)", attio: "var(--t-attio)", github: "var(--t-github)" };
@@ -156,12 +159,15 @@ const STATUS = [["pending", "To review"], ["ask", "Needs your answer"], ["approv
 const st = (p) => p.pushed ? "pushed" : p.decision?.status || "pending";
 const statuses = () => STATUS;
 const inStatus = (p, s) => s === "all" || (s === "ask" ? p.unsure && st(p) === "pending" : st(p) === s);
-const visible = () => S.docs.filter((p) => inStatus(p, S.status) && (S.target === "all" || place(p) === S.target));
+// An item going onto the site stays where the reviewer approved it until `pushed` arrives.
+const publishing = (p) => !!p.publishing && !p.pushed;
+const visible = () => S.docs.filter((p) => (inStatus(p, S.status) || (S.hold.has(p.id) && publishing(p))) && (S.target === "all" || place(p) === S.target));
 const lastDate = (p) => (p.citations || []).map((c) => c.date).sort().pop() || "";
 const fmt = (d) => { if (!d) return ""; const x = new Date(/\d:\d/.test(d) ? d.replace(" ", "T") + (d.length <= 16 ? ":00Z" : "") : d + "T00:00:00"); return x.toLocaleDateString("en-GB", { day: "numeric", month: "short" }); };
 
 function icon(p) {
   const s = st(p);
+  if (publishing(p)) return `<svg class="icon spin" viewBox="0 0 14 14" role="img" aria-label="Going on your site"><circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--border)" stroke-width="2"/><path d="M7 1.5a5.5 5.5 0 0 1 5.5 5.5" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
   if (s === "pushed") return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--accent)"/><path d="M4.2 7.2l1.9 1.9 3.7-4" stroke="var(--panel)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   if (s === "approved") return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--success)"/><path d="M4.2 7.2l1.9 1.9 3.7-4" stroke="var(--panel)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   if (s === "rejected") return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="var(--fg-2)"/><path d="M4.8 4.8l4.4 4.4M9.2 4.8l-4.4 4.4" stroke="var(--panel)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
@@ -188,7 +194,7 @@ function renderList() {
   $("lhn").textContent = ps.length;
   if (!ps.find((p) => p.id === S.cur)) S.cur = ps[0]?.id ?? null;
   $("rows").innerHTML = ps.length ? ps.map((p) => `<div class="row${p.id === S.cur ? " on" : ""}" data-id="${esc(p.id)}" tabindex="0">
-      ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${fmt(lastDate(p))}</div>
+      ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${p.old ? esc("Old, " + p.old) : fmt(lastDate(p))}</div>
       <div class="sub">${tag(place(p))}<span>${esc((p.action || "").replace(/_/g, " "))}</span></div></div>`).join("")
     : `<div class="empty">${S.docs.length ? "Nothing here. You're done with this view." : "No suggestions yet. New ones appear after each run."}</div>`;
 }
@@ -207,17 +213,17 @@ function renderDetail() {
     ...fields.map(([k, v]) => [esc(k), esc(typeof v === "object" ? JSON.stringify(v) : v)]),
   ].filter(Boolean);
   const who = p.decision?.by ? (p.decision.by === S.uid ? " by you" : ` by ${esc(S.names?.[p.decision.by] || "Someone")}`) : "";
-  const statusText = s === "pushed" ? `${icon(p)} Written${p.pushed.url ? ` <a href="${esc(p.pushed.url)}" target="_blank" rel="noreferrer">link ↗</a>` : ""}` : s === "approved" ? `${icon(p)} Approved${who}` : s === "rejected" ? `${icon(p)} Rejected${who}` : `${icon(p)} Waiting for review`;
+  const statusText = publishing(p) ? `${icon(p)} Going on your site…` : s === "pushed" ? `${icon(p)} Written${p.pushed.url ? ` <a href="${esc(p.pushed.url)}" target="_blank" rel="noreferrer">link ↗</a>` : ""}` : s === "approved" ? `${icon(p)} Approved${who}` : s === "rejected" ? `${icon(p)} Rejected${who}` : `${icon(p)} Waiting for review`;
   $("detail").innerHTML = `<div class="d-wrap">
     <button class="btn back" data-act="back">← All items</button>
     <div class="crumbs">${tag(place(p))}<span>·</span><span>${esc((p.action || "").replace(/_/g, " "))}</span></div>
     <h1>${esc(p.title)}</h1>
     <div class="toolbar">
       ${s === "pushed" ? "" : S.editing === p.id ? `<button class="btn primary" data-act="save">Save text</button><button class="btn" data-act="cancel">Cancel</button>`
-      : `<button class="btn primary" data-act="approve"${s === "approved" ? " disabled" : ""}>Approve <kbd>A</kbd></button>
-         <button class="btn danger" data-act="reject"${s === "rejected" ? " disabled" : ""}>Reject <kbd>R</kbd></button>
-         <button class="btn" data-act="edit">Edit text <kbd>E</kbd></button>
-         ${s !== "pending" ? `<button class="btn" data-act="reset">Undo <kbd>U</kbd></button>` : ""}`}
+      : `<button class="btn primary" data-act="approve"${s === "approved" || publishing(p) ? " disabled" : ""}>Approve <kbd>A</kbd></button>
+         <button class="btn danger" data-act="reject"${s === "rejected" || publishing(p) ? " disabled" : ""}>Reject <kbd>R</kbd></button>
+         <button class="btn" data-act="edit"${publishing(p) ? " disabled" : ""}>Edit text <kbd>E</kbd></button>
+         ${s !== "pending" ? `<button class="btn" data-act="reset"${publishing(p) ? " disabled" : ""}>Undo <kbd>U</kbd></button>` : ""}`}
       <span class="status">${statusText}</span>
     </div>
     ${lookUrl(p.look) ? `<iframe class="look" src="${esc(lookUrl(p.look))}" title="How the change looks" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>` : ""}
@@ -275,11 +281,18 @@ function toast(text) { const t = $("toast"); t.textContent = text; t.hidden = fa
 async function decide(id, patch, advance) {
   const p = S.docs.find((x) => x.id === id); if (!p) return;
   if (p.pushed) { toast("This item is already written. It can no longer change."); return; }
+  if (publishing(p)) { toast("This change is going on your site. Wait until it shows as written."); return; }
   const note = S.draft[p.id];
   const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}), rev: p.rev ?? "" };
-  if (advance) { const ps = visible(); const i = ps.findIndex((x) => x.id === p.id); S.cur = (ps[i + 1] || ps[i - 1] || {}).id ?? null; }
+  const ps = visible(); const i = ps.findIndex((x) => x.id === p.id); const next = (ps[i + 1] || ps[i - 1] || {}).id ?? null;
+  if (advance) S.cur = next;
   S.saving = p.id; S.err = null; refreshCtl();
-  try { await S.store.decide(p.id, decision); if (S.draft[p.id] === note) delete S.draft[p.id]; }
+  try {
+    const saved = await S.store.decide(p.id, decision);
+    if (S.draft[p.id] === note) delete S.draft[p.id];
+    // A destination that publishes on approval answers with `publishing`: keep that item in view and selected.
+    if (saved && publishing(saved)) { S.hold.add(p.id); S.cur = p.id; Object.assign(p, saved); render(); }
+  }
   catch (e) { S.err = { id: p.id, text: "Could not save: " + (e.message || e.code) }; toast(`Could not save "${p.title}". ${S.canWrite === false ? "You can view this page but not change it. Ask the owner for edit access." : (e.message || e.code)}`); }
   S.saving = null; refreshCtl();
 }
@@ -367,7 +380,9 @@ function httpStore() {
       const r = await fetch("api/proposals/" + encodeURIComponent(id), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) }).catch(() => { throw { message: "no answer from the server" }; });
       // Reload either way, so a refused decision shows the item as it is now.
       reload();
-      if (!r.ok) throw { message: (await r.json().catch(() => ({}))).error || "the server answered " + r.status };
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw { message: body.error || "the server answered " + r.status };
+      return body;
     },
   };
 }
@@ -392,6 +407,9 @@ function httpStore() {
   const merge = (docs) => {
     S.docs = [...docs]
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    for (const id of S.hold) if (!S.docs.some((p) => p.id === id && publishing(p))) S.hold.delete(id);
+    // An item loaded mid-publish (after a reload, or on another reviewer's page) keeps its place too.
+    for (const p of S.docs) if (publishing(p)) S.hold.add(p.id);
     renderNav(); if (S.view === "runs") renderRuns(); else { renderList(); if (S.editing || document.activeElement?.id === "note") refreshCtl(); else renderDetail(); } S.loadNames();
   };
   const drawLast = () => {

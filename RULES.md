@@ -40,6 +40,8 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   "look": "/preview/<item id> or https://..., when the destination can show the change as a page",
   "unsure": false,
   "question": "",
+  "old": "",
+  "reminder_of": "",
   "run": "YYYY-MM-DD",
   "order": 0
 }
@@ -47,5 +49,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 
 - `id` stays the same when the same record comes up again, so a re-read updates the item instead of adding a second one. Once an item has a decision or `pushed`, it never changes: news about that record goes into a new item, as AGENTS.md step 3 says.
 - `look` is optional: an address the review page shows in a frame, so the reviewer sees the change instead of reading it.
+- `old` says how long the newest cited message waited before this item was made, such as "waited 3 days", when that is longer than the project's `old_after_hours` (24 unless config sets it). It is empty otherwise. A message waits when no run reads it, for example while the computer that runs Context Inbox is off.
+- `reminder_of` holds the id of the written item a reminder follows up, and is empty on every other item. AGENTS.md step 3b says when reminders are made.
 - `existing` is `null` for new records. `fields` holds only what the action needs.
 - `order` continues after the highest `order` already on the page.
