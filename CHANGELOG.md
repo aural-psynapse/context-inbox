@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/aural-psynapse/context-inbox/compare/v1.4.0...v1.4.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* lint errors in the new tests and the Gmail sender ([79ba04d](https://github.com/aural-psynapse/context-inbox/commit/79ba04d1a08923c143bdf046f6e373f860371cf9))
+
 ## [1.4.0](https://github.com/aural-psynapse/context-inbox/compare/v1.3.0...v1.4.0) (2026-11-23)
 
 
