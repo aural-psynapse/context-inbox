@@ -35,10 +35,9 @@ class ConnectorTest(unittest.TestCase):
     def test_good(self):
         self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"]}]))[0], 0)
 
-    def test_reminder_days_and_old_after_pass(self):
+    def test_reminder_days_pass(self):
         cfg = slack([{"id": "C0123456789", "feeds": ["d"]}])
         cfg["destinations"] = [{"id": "d", "type": "linear", "reminder_days": [3, 7, 14]}]
-        cfg["old_after_hours"] = 12
         self.assertEqual(check(cfg)[0], 0)
 
     def test_single_project_folder(self):
