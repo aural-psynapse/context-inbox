@@ -35,6 +35,11 @@ class ConnectorTest(unittest.TestCase):
     def test_good(self):
         self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"]}]))[0], 0)
 
+    def test_reminder_days_pass(self):
+        cfg = slack([{"id": "C0123456789", "feeds": ["d"]}])
+        cfg["destinations"] = [{"id": "d", "type": "linear", "reminder_days": [3, 7, 14]}]
+        self.assertEqual(check(cfg)[0], 0)
+
     def test_single_project_folder(self):
         self.assertEqual(check(slack([{"id": "C0123456789", "feeds": ["d"]}]), single=True)[0], 0)
 
@@ -95,6 +100,14 @@ class ConnectorTest(unittest.TestCase):
             "channel id list": slack([{"id": ["C1"], "feeds": ["d"]}]),
             "old after zero": {**slack([{"id": "C0123456789", "feeds": ["d"]}]), "old_after_hours": 0},
             "old after text": {**slack([{"id": "C0123456789", "feeds": ["d"]}]), "old_after_hours": "a day"},
+            "reminder days not rising": {
+                **slack([{"id": "C0123456789", "feeds": ["d"]}]),
+                "destinations": [{"id": "d", "type": "linear", "reminder_days": [7, 3]}],
+            },
+            "reminder days zero": {
+                **slack([{"id": "C0123456789", "feeds": ["d"]}]),
+                "destinations": [{"id": "d", "type": "linear", "reminder_days": [0]}],
+            },
             "placeholder page": {
                 **slack([{"id": "C0123456789", "feeds": ["d"]}]),
                 "review_page": "https://claude.ai/artifact/<id>",

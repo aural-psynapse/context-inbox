@@ -38,3 +38,14 @@ A source of type `gmail` reads emails that match a Gmail search. Each channel ha
 ```
 
 The secret holds JSON `{"client_id", "client_secret", "refresh_token"}` from a Google OAuth client with the `gmail.readonly` scope, or a short-lived access token. In cloud runs, store it as a network secret for `gmail.googleapis.com` and `oauth2.googleapis.com`.
+
+## Reminders after a write
+
+Add `reminder_days` to a destination, and each item written there gets reminder drafts on those days after it was written. Each draft waits for approval like any other item. The project's `RULES.md` says what the reminders say and what stops them.
+
+```json
+"destinations": [ { "id": "gmail-acme", "type": "gmail", "guide": "gmail", "send_as": "sales@acme.com",
+  "secret": "GMAIL_ACME_SEND", "reminder_days": [3, 7, 14] } ]
+```
+
+Line in `RULES.md`: Reminders to a shop say one new thing each, are sent as replies to the first email, and stop when the shop replies or books a call.
