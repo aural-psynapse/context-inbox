@@ -27,3 +27,14 @@ A source of type `calcom` reads new bookings, and each cancellation, move or con
 ```
 
 The secret holds a Cal.com API key, which starts with `cal_`, made under Settings, Developer, API keys. In cloud runs, store it as a network secret for `api.cal.com`.
+
+## Gmail as a source
+
+A source of type `gmail` reads emails that match a Gmail search. Each channel has a short `id` and a `query`.
+
+```json
+"sources": [ { "id": "mail-acme", "type": "gmail", "reader": "gmail", "secret": "GMAIL_ACME",
+  "channels": [ { "id": "sales", "query": "to:sales@acme.com", "feeds": ["attio-acme"] } ] } ]
+```
+
+The secret holds JSON `{"client_id", "client_secret", "refresh_token"}` from a Google OAuth client with the `gmail.readonly` scope, or a short-lived access token. In cloud runs, store it as a network secret for `gmail.googleapis.com` and `oauth2.googleapis.com`.

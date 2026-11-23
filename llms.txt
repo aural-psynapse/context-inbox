@@ -14,6 +14,8 @@ Each project keeps a folder in a separate private repo with `config.json` and `R
 
 - [integrations/slack/reader.py](integrations/slack/reader.py): Slack reader, thread replies included.
 - [integrations/calcom/reader.py](integrations/calcom/reader.py): Cal.com reader, new and changed bookings.
+- [integrations/gmail/reader.py](integrations/gmail/reader.py): Gmail reader, one channel per mailbox search, attachments read.
+- [integrations/gmail/guide.md](integrations/gmail/guide.md): Gmail destination: sends each approved email once, from a send-as address, with pictures inside.
 - [integrations/linear/guide.md](integrations/linear/guide.md): Linear issues and comments.
 - [integrations/attio/guide.md](integrations/attio/guide.md): Attio deal notes and tasks.
 - [integrations/github/guide.md](integrations/github/guide.md): one commit per item to a repo.
