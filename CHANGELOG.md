@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/aural-psynapse/context-inbox/compare/v1.2.2...v1.3.0) (2026-11-23)
+
+
+### Features
+
+* keep review items in a SQLite file by default, with claude.ai as a second review store ([53cb569](https://github.com/aural-psynapse/context-inbox/commit/53cb5694d0e2a6539c2425b1e32149065ff438a7))
+
 ## [1.2.2](https://github.com/aural-psynapse/context-inbox/compare/v1.2.1...v1.2.2) (2026-11-19)
 
 
