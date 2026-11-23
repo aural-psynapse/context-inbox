@@ -38,7 +38,9 @@ class PermissionsTest(unittest.TestCase):
             self.assertFalse([a for a in perms["allow"] if a.startswith("Bash(git")])
             attio = [a for a in perms["allow"] if "attio/upload.py" in a]
             self.assertIn(f"Bash(python3 {REPO}/integrations/attio/upload.py {resolved}/config.json:*)", attio)
-            self.assertEqual(len(attio), 2)
+            # One rule per spelling of the path: two on macOS, where /var links to /private/var, one on Linux.
+            spellings = {os.path.join(real, "config.json"), os.path.join(resolved, "config.json")}
+            self.assertEqual(len(attio), len(spellings))
             self.assertIn(f"Edit(/{resolved}/readers/**)", perms["deny"])
             self.assertNotIn("Write", perms["allow"])
             self.assertNotIn("Edit", perms["allow"])
