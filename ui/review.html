@@ -185,7 +185,7 @@ function renderList() {
   $("lhn").textContent = ps.length;
   if (!ps.find((p) => p.id === S.cur)) S.cur = ps[0]?.id ?? null;
   $("rows").innerHTML = ps.length ? ps.map((p) => `<div class="row${p.id === S.cur ? " on" : ""}" data-id="${esc(p.id)}" tabindex="0">
-      ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${fmt(lastDate(p))}</div>
+      ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${p.old ? esc("Old, " + p.old) : fmt(lastDate(p))}</div>
       <div class="sub">${tag(place(p))}<span>${esc((p.action || "").replace(/_/g, " "))}</span></div></div>`).join("")
     : `<div class="empty">${S.docs.length ? "Nothing here. You're done with this view." : "No proposals yet. Claude adds them after each run."}</div>`;
 }

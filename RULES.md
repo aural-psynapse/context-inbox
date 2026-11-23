@@ -39,11 +39,13 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   ],
   "unsure": false,
   "question": "",
+  "old": "",
   "run": "YYYY-MM-DD",
   "order": 0
 }
 ```
 
 - `id` stays the same when the same record comes up again, so a re-read updates the item instead of adding a second one. Once an item has a decision or `pushed`, it never changes: news about that record goes into a new item, as AGENTS.md step 3 says.
+- `old` says how long the newest cited message waited before this item was made, such as "waited 3 days", when that is longer than the project's `old_after_hours` (24 unless config sets it). It is empty otherwise. A message waits when no run reads it, for example while the computer that runs Context Inbox is off.
 - `existing` is `null` for new records. `fields` holds only what the action needs.
 - `order` continues after the highest `order` already on the page.

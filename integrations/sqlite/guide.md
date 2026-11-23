@@ -28,6 +28,16 @@ Every command starts with `python3 integrations/sqlite/store.py <project folder>
 
 `set` replaces the whole doc. `update` replaces only the top-level keys it is given and exits 1 when the doc does not exist.
 
+## New messages without waiting for the daily run
+
+Start the page with `--every` and `--run`, and a run reads new messages every few minutes while the page is up:
+
+```sh
+python3 integrations/sqlite/serve.py <project folder>/review.db --every 5 --run "runner/read-now.sh <projects repo> <project>"
+```
+
+While the computer is off, messages wait. The first run after it comes back marks items whose messages waited longer than `old_after_hours` with "Old, waited ..." in place of the date.
+
 ## The page
 
 - The page is up only while `serve.py` runs. A run does not need it: it uses `store.py` on the file.
