@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import json
 import os
 import subprocess
@@ -28,6 +29,8 @@ def _records(dest):
 
 
 def read(tool, args, dest):
+    if args.get("q") == "boom":
+        raise RuntimeError("the tool is down")
     return [r for r in _records(dest) if args.get("q", "") in r["text"]]
 
 
@@ -64,7 +67,12 @@ class McpTest(unittest.TestCase):
         }
         with open(os.path.join(self.dir.name, "config.json"), "w") as f:
             json.dump(config, f)
-        env = {**os.environ, "TRACKER_KEY": "server-only-key"}
+        pin = hashlib.sha256(TOOLS.encode()).hexdigest()
+        env = {**os.environ, "TRACKER_KEY": "server-only-key", "CONTEXT_INBOX_PINS": json.dumps({"lin": pin})}
+        self.start(env)
+
+    def start(self, env):
+        self.env = env
         self.proc = subprocess.Popen(
             [sys.executable, os.path.join(REPO, "server", "mcp.py"), self.dir.name],
             stdin=subprocess.PIPE,
@@ -72,13 +80,24 @@ class McpTest(unittest.TestCase):
             text=True,
             env=env,
         )
-        self.addCleanup(self.proc.stdout.close)
-        self.addCleanup(self.proc.wait)
-        self.addCleanup(self.proc.stdin.close)
+        self.addCleanup(self.stop, self.proc)
         self.n = 0
         init = self.rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
         self.assertEqual(init["serverInfo"]["name"], "context-inbox")
         self.proc.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
+
+    def stop(self, proc):
+        proc.stdin.close()
+        proc.wait()
+        proc.stdout.close()
+
+    def restart(self, env):
+        self.stop(self.proc)
+        self.start(env)
+
+    def approve(self, doc_id, **extra):
+        rev = store.get_doc(self.db, "proposals", doc_id).get("rev", 0)
+        store.write(self.db, "proposals", doc_id, store.page_change({"status": "approved", "rev": rev, **extra}))
 
     def rpc(self, method, params=None):
         self.n += 1
@@ -129,7 +148,7 @@ class McpTest(unittest.TestCase):
 
     def test_approved_item_is_written_once_with_the_server_key(self):
         self.tool("propose", item=self.item())
-        store.update_doc(self.db, "proposals", "lin--1", {"decision": {"status": "approved", "body": "Edited"}})
+        self.approve("lin--1", body="Edited")
         result, _ = self.tool("push_approved")
         self.assertEqual(result["written"], [{"id": "lin--1", "url": "https://tracker.test/1"}])
         self.assertEqual(self.records()[0]["text"], "Edited\n\nctx: lin--1")
@@ -143,7 +162,7 @@ class McpTest(unittest.TestCase):
         with open(self.log, "w") as f:
             f.write(json.dumps({"url": "https://tracker.test/9", "text": "old\n\nctx: lin--1"}) + "\n")
         self.tool("propose", item=self.item())
-        store.update_doc(self.db, "proposals", "lin--1", {"decision": {"status": "approved"}})
+        self.approve("lin--1")
         result, _ = self.tool("push_approved")
         self.assertEqual(result["written"][0]["url"], "https://tracker.test/9")
         self.assertEqual(len(self.records()), 1)
@@ -163,10 +182,38 @@ class McpTest(unittest.TestCase):
 
     def test_destination_without_writer_waits(self):
         self.tool("propose", item={**self.item("crm--1"), "dest": "crm", "action": "add_note"})
-        store.update_doc(self.db, "proposals", "crm--1", {"decision": {"status": "approved"}})
+        self.approve("crm--1")
         result, _ = self.tool("push_approved")
         self.assertEqual(result["approved_without_writer"][0]["id"], "crm--1")
         self.assertNotIn("pushed", store.get_doc(self.db, "proposals", "crm--1"))
+
+    def test_text_changed_before_the_click_is_not_written(self):
+        self.tool("propose", item=self.item())
+        seen = store.get_doc(self.db, "proposals", "lin--1")["rev"]
+        self.tool("propose", item=self.item(body="Swapped in just before the click"))
+        with self.assertRaises(store.Refused):
+            store.write(self.db, "proposals", "lin--1", store.page_change({"status": "approved", "rev": seen}))
+        self.assertEqual(self.tool("push_approved")[0]["written"], [])
+        self.assertFalse(os.path.exists(self.log))
+
+    def test_tools_file_changed_after_pinning_is_switched_off(self):
+        with open(os.path.join(self.dir.name, "tools", "tracker.py"), "a") as f:
+            f.write("\n# edited by a run\n")
+        self.restart(self.env)
+        names = [t["name"] for t in self.rpc("tools/list")["tools"]]
+        self.assertNotIn("lin__find", names)
+        self.tool("propose", item=self.item())
+        self.approve("lin--1")
+        result, _ = self.tool("push_approved")
+        self.assertIn("changed since it was pinned", result["approved_without_writer"][0]["why"])
+        self.assertFalse(os.path.exists(self.log))
+
+    def test_bad_calls_answer_with_an_error_and_the_server_keeps_running(self):
+        self.assertTrue(self.tool("lin__find", q="boom")[1])
+        r = self.rpc("tools/call", {"name": "propose", "arguments": ["not", "an", "object"]})
+        self.assertTrue(r["isError"])
+        self.assertTrue(self.tool("propose", item={**self.item(), "dest": ["lin"]})[1])
+        self.assertEqual(self.tool("inbox_list", collection="runs")[0], [])
 
     def test_cursors_runs_and_bad_input(self):
         self.tool("save_cursors", source="slack", cursors={"C1": "1"})

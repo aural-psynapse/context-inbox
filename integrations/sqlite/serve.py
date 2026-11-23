@@ -84,11 +84,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         doc_id = unquote(path[len("/api/proposals/") :])
 
-        def written(doc: dict):
-            return "This item is already written. It can no longer change." if doc.get("pushed") else None
-
         try:
-            self.send_json(200, store.update_doc(self.db, "proposals", doc_id, {"decision": decision}, refuse=written))
+            self.send_json(200, store.write(self.db, "proposals", doc_id, store.page_change(decision)))
         except store.Refused as e:
             self.send_json(409, {"error": str(e)})
         except store.StoreError as e:

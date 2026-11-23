@@ -34,7 +34,7 @@ class StoreCliTest(unittest.TestCase):
     def test_set_get_list_delete(self):
         self.assertEqual(cli(self.db, "set", "proposals", "d--1", stdin={"title": "A", "body": "x"})[0], 0)
         self.assertEqual(
-            json.loads(cli(self.db, "get", "proposals", "d--1")[1]), {"title": "A", "body": "x", "id": "d--1"}
+            json.loads(cli(self.db, "get", "proposals", "d--1")[1]), {"title": "A", "body": "x", "rev": 1, "id": "d--1"}
         )
         self.assertEqual([d["id"] for d in json.loads(cli(self.db, "list", "proposals")[1])], ["d--1"])
         self.assertEqual(cli(self.db, "delete", "proposals", "d--1")[0], 0)
@@ -52,6 +52,14 @@ class StoreCliTest(unittest.TestCase):
         cli(self.db, "set", "state", "slack", stdin={"cursors": {"C1": "2"}})
         self.assertEqual(json.loads(cli(self.db, "get", "state", "slack")[1]), {"cursors": {"C1": "2"}, "id": "slack"})
 
+    def test_pushed_only_on_an_approved_item(self):
+        self.assertNotEqual(
+            cli(self.db, "set", "proposals", "d--1", stdin={"title": "A", "pushed": {"url": "u"}})[0], 0
+        )
+        cli(self.db, "set", "proposals", "d--1", stdin={"title": "A"})
+        self.assertNotEqual(cli(self.db, "update", "proposals", "d--1", stdin={"pushed": {"url": "u"}})[0], 0)
+        self.assertNotIn("pushed", serve.store.get_doc(self.db, "proposals", "d--1"))
+
     def test_command_line_never_decides(self):
         self.assertNotEqual(cli(self.db, "set", "proposals", "d--1", stdin={"decision": {"status": "approved"}})[0], 0)
         cli(self.db, "set", "proposals", "d--1", stdin={"title": "A"})
@@ -60,7 +68,8 @@ class StoreCliTest(unittest.TestCase):
         )
         ok = {"title": "A", "decision": {"status": "pending", "comment": "answer"}}
         self.assertEqual(cli(self.db, "set", "proposals", "d--1", stdin=ok)[0], 0)
-        serve.store.update_doc(self.db, "proposals", "d--1", {"decision": {"status": "approved"}})
+        rev = serve.store.get_doc(self.db, "proposals", "d--1")["rev"]
+        serve.store.update_doc(self.db, "proposals", "d--1", {"decision": {"status": "approved", "rev": rev}})
         self.assertNotEqual(cli(self.db, "set", "proposals", "d--1", stdin={"title": "B"})[0], 0)
         self.assertNotEqual(cli(self.db, "delete", "proposals", "d--1")[0], 0)
         self.assertEqual(cli(self.db, "update", "proposals", "d--1", stdin={"pushed": {"url": "u"}})[0], 0)

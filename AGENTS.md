@@ -111,28 +111,45 @@ To keep the items in a database a site already has, write a guide in the project
 
 ## MCP server
 
-[`server/mcp.py`](server/mcp.py) is the agent's one door to the items and the destinations. Start it as an MCP server over stdio: `python3 server/mcp.py <project folder>`. It works with the `sqlite` review store.
+[`server/mcp.py`](server/mcp.py) is the agent's one door to the items and the destinations. It works with the `sqlite` review store.
 
 - **Reads** go straight through: `inbox_list`, `inbox_get`, and each destination's read tools, named `<destination id>__<tool>`.
 - **Changes** wait for a person: `propose` saves an item, `withdraw` deletes an undecided one. No tool approves or rejects.
-- **Writes** happen only in `push_approved`. The server writes each approved, unwritten item itself and saves `pushed`.
-- **Keys** live in the server's environment, in the env var each destination's `secret` names. Give the agent session no key and no write connector for that destination.
+- **Writes** happen only in `push_approved`. The server writes each approved, unwritten item itself and saves `pushed`. It skips an item whose text changed after the approval.
+- **Keys** live in the server's environment. The agent session holds no destination key and no write connector for that destination.
+
+### Register the server
+
+The person runs this once, in a terminal, outside the agent session. It saves the keys in Claude Code's user settings, where only the server process gets them as env vars:
+
+```sh
+claude mcp add context-inbox --scope user \
+  -e CRM_KEY=<the destination's key> \
+  -e CONTEXT_INBOX_PINS='<output of --print-pins>' \
+  -- python3 <this repo>/server/mcp.py <project folder>
+```
+
+Use one `-e` per destination `secret`. `claude mcp add --help` lists the options. The run gets the server's tools as `mcp__context-inbox__<tool>`.
 
 ### Wire a destination to the server
 
-Write a tools file for the destination in the project folder, such as `tools/crm.py`, and set `"tools": "tools/crm.py"` on the destination in config. `connector/check.py` checks that the file exists. The file defines:
+1. Write a tools file for the destination in the project folder, such as `tools/crm.py`, and set `"tools": "tools/crm.py"` on the destination in config. `connector/check.py` checks that the file exists.
+2. Ask the person to read the file, then run `python3 server/mcp.py <project folder> --print-pins` and register the server with that output. The server runs a tools file only while its bytes match the pin, so a run that edits the file switches that destination off.
+3. Test it through the server: call each read tool, then propose one test item on a test record the person names. The person approves it, you call `push_approved`, and both of you check the record.
+
+The file defines, with the Python standard library only:
 
 | Name | What it does |
 |---|---|
 | `READ_TOOLS` | a list of `{ name, description, inputSchema }`, one per read the agent needs to draft good items, such as a search or a get by id. Reads only: no tool here may create, change or delete anything. |
-| `read(tool, args, destination)` | runs one read tool and returns JSON-ready data. |
-| `write(item, destination)` | writes one approved item and returns the record's URL. It uses `decision.body` when present, else `body`, puts `ctx: <item id>` where the guide puts the marker, and searches for that marker first so a write never happens twice. It raises on any failure. |
+| `read(tool, args, destination)` | runs one read tool and returns JSON-ready data. It raises on any failure; the server returns the error to the agent. |
+| `write(item, destination)` | writes one approved item. It handles each `action` the destination's guide defines and raises on any other. It uses `decision.body` when present, else `body`, and puts `ctx: <item id>` where the guide puts the marker: for a change with no text of its own, such as a new stage, it adds a note or comment that carries the marker. It searches for the marker first, so a write never happens twice. It returns the record's URL, or the record's id when the tool has no URL. It raises on any failure. |
 
-`destination` is the destination's object from config. Read its key with `os.environ[destination["secret"]]`. Use the Python standard library only. Test `read` against the real tool before the first run, and `write` against a test record the person names.
+`destination` is the destination's object from config. Read its key with `os.environ[destination["secret"]]`.
 
 A destination without `tools` keeps the old way: the agent writes approved items by the guide, and `push_approved` lists them as waiting.
 
-With the server, the daily run calls `push_approved` for step 1, `propose` and `withdraw` for step 3, `save_cursors` for step 4 and `log_run` for step 5.
+With the server, the daily run calls `push_approved` for step 1, `propose` and `withdraw` for step 3, `save_cursors` for step 4 and `log_run` for step 5. `runner/run.sh` allows the server's tools.
 
 ## Review page collections
 
@@ -143,6 +160,8 @@ You read and write the collections the way the review store's guide says.
 | `proposals` | items waiting for, or past, review | every reviewer |
 | `state` | one doc per source id: `{ cursors: { channel_id: cursor } }` | the run, and no reviewer |
 | `runs` | one doc per run, id = UTC start time | every reviewer |
+
+An item may carry `look`: an address the review page shows in a frame, so the reviewer sees the change instead of reading it. Use a path on the review page's own site, or an `https://` address.
 
 An item is **decided** when `decision.status` is `approved` or `rejected`, or when it carries `pushed`. A reviewer can also save a comment without deciding: `decision.status` stays `pending` and `decision.comment` holds the text. On an item marked `unsure`, that comment is the reviewer's answer. The review page shows pushed items as written, with their link, and locks them.
 

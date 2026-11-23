@@ -14,6 +14,9 @@ list prints a JSON array, each doc with its `id`. get prints one doc, or null.
 set replaces the doc with the JSON object on stdin. update replaces only the
 top-level keys that object names and keeps the rest. It exits 1 when the doc
 does not exist.
+
+On proposals the command line never approves or rejects, never changes or
+deletes a decided item, and saves `pushed` only alone, on an approved item.
 """
 
 import json
@@ -107,19 +110,84 @@ def delete_doc(db: str, collection: str, doc_id: str) -> None:
         con.execute("DELETE FROM docs WHERE collection = ? AND id = ?", (collection, doc_id))
 
 
-def _agent_may_write(db: str, verb: str, doc_id: str, data) -> None:
-    """The command line is what a run uses, so it never approves or rejects. Only the review page decides."""
-    status = ((data or {}).get("decision") or {}).get("status") if isinstance(data, dict) else None
-    if status not in (None, "pending"):
-        raise StoreError("only a person on the review page approves or rejects an item")
-    old = get_doc(db, "proposals", doc_id)
-    if not old or not (old.get("pushed") or (old.get("decision") or {}).get("status") in ("approved", "rejected")):
-        return
-    # A decided item is frozen. The one write left is saving `pushed` on an approved, unwritten item.
-    approved = (old.get("decision") or {}).get("status") == "approved"
-    if verb == "update" and set(data) == {"pushed"} and approved and not old.get("pushed"):
-        return
-    raise StoreError(f"item {doc_id!r} is decided or written. It can no longer change.")
+def write(db: str, collection: str, doc_id: str, change) -> dict | None:
+    """Read, change and save one doc under one lock. `change(old or None)` returns the new doc, or None to delete."""
+    _known(collection)
+    with closing(_open(db)) as con:
+        con.execute("BEGIN IMMEDIATE")
+        try:
+            row = con.execute("SELECT data FROM docs WHERE collection = ? AND id = ?", (collection, doc_id)).fetchone()
+            new = change(json.loads(row[0]) if row else None)
+            if new is None:
+                con.execute("DELETE FROM docs WHERE collection = ? AND id = ?", (collection, doc_id))
+            else:
+                text = json.dumps({k: v for k, v in _object(new).items() if k != "id"}, ensure_ascii=False)
+                con.execute(
+                    "INSERT OR REPLACE INTO docs (collection, id, data) VALUES (?, ?, ?)", (collection, doc_id, text)
+                )
+            con.execute("COMMIT")
+        except BaseException:
+            con.execute("ROLLBACK")
+            raise
+    return None if new is None else {**new, "id": doc_id}
+
+
+def _status(doc) -> str:
+    return ((doc or {}).get("decision") or {}).get("status") or "pending"
+
+
+def decided(doc) -> bool:
+    return bool(doc) and (bool(doc.get("pushed")) or _status(doc) in ("approved", "rejected"))
+
+
+def agent_change(verb: str, data=None):
+    """What a run may do to an item: everything except deciding, and nothing once a person decided.
+
+    The one write left on a decided item is `pushed`, alone, on an approved item not written yet.
+    Every other change raises `rev`, so an approval given to older text no longer counts.
+    """
+    data = _object(data if data is not None else {})
+
+    def change(old):
+        if verb == "delete":
+            if not old:
+                raise StoreError("there is no such item")
+            if decided(old):
+                raise Refused("the item is decided or written. It can no longer change.")
+            return None
+        if ((data.get("decision") or {}).get("status") or "pending") != "pending":
+            raise Refused("only a person on the review page approves or rejects an item")
+        if "pushed" in data:
+            if verb != "update" or set(data) != {"pushed"}:
+                raise Refused("save pushed alone, with update, after the write went through")
+            if not old or _status(old) != "approved" or old.get("pushed"):
+                raise Refused("pushed goes only on an approved item that is not written yet")
+            return {**old, **data}
+        if decided(old):
+            raise Refused("the item is decided or written. Put the news in a new item.")
+        if verb == "update" and not old:
+            raise StoreError("there is no such item")
+        new = {**old, **data} if verb == "update" else dict(data)
+        new["rev"] = int((old or {}).get("rev", 0)) + 1
+        return new
+
+    return change
+
+
+def page_change(decision: dict):
+    """What the review page may do: set `decision` on an unwritten item, for the text the person saw."""
+    _object(decision)
+
+    def change(old):
+        if not old:
+            raise StoreError("there is no such item")
+        if old.get("pushed"):
+            raise Refused("This item is already written. It can no longer change.")
+        if int(decision.get("rev", 0)) != int(old.get("rev", 0)):
+            raise Refused("This item changed while you looked at it. Read the new text, then decide again.")
+        return {**old, "decision": decision}
+
+    return change
 
 
 def main() -> None:
@@ -134,18 +202,15 @@ def main() -> None:
             print(json.dumps(list_docs(db, collection), indent=2, ensure_ascii=False))
         elif verb == "get":
             print(json.dumps(get_doc(db, collection, rest[0]), indent=2, ensure_ascii=False))
+        elif collection == "proposals":
+            # The command line is what a run uses, so it follows the run's rules.
+            write(db, collection, rest[0], agent_change(verb, None if verb == "delete" else json.load(sys.stdin)))
         elif verb == "delete":
-            if collection == "proposals":
-                _agent_may_write(db, verb, rest[0], {})
             delete_doc(db, collection, rest[0])
+        elif verb == "set":
+            set_doc(db, collection, rest[0], json.load(sys.stdin))
         else:
-            data = json.load(sys.stdin)
-            if collection == "proposals":
-                _agent_may_write(db, verb, rest[0], data)
-            if verb == "set":
-                set_doc(db, collection, rest[0], data)
-            else:
-                update_doc(db, collection, rest[0], data)
+            update_doc(db, collection, rest[0], json.load(sys.stdin))
     except (StoreError, ValueError, sqlite3.Error) as e:
         sys.exit(f"error: {e}")
 

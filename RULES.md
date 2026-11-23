@@ -37,6 +37,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   "citations": [
     { "date": "YYYY-MM-DD HH:MM", "author": "Name", "channel": "<channel id>", "ts": "<message ts>", "quote": "verbatim", "link": "https://..." }
   ],
+  "look": "/preview/<item id> or https://..., when the destination can show the change as a page",
   "unsure": false,
   "question": "",
   "run": "YYYY-MM-DD",
@@ -45,5 +46,6 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 ```
 
 - `id` stays the same when the same record comes up again, so a re-read updates the item instead of adding a second one. Once an item has a decision or `pushed`, it never changes: news about that record goes into a new item, as AGENTS.md step 3 says.
+- `look` is optional: an address the review page shows in a frame, so the reviewer sees the change instead of reading it.
 - `existing` is `null` for new records. `fields` holds only what the action needs.
 - `order` continues after the highest `order` already on the page.

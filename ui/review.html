@@ -104,6 +104,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 .btn.saved[disabled] { opacity: 1; color: var(--success); border-color: var(--success); }
 .ask textarea { margin-top: 8px; background: var(--panel); font-weight: 400; }
 .back { display: none; }
+.look { display: block; width: 100%; height: 70vh; min-height: 420px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
 @media (max-width: 1100px) { .app { grid-template-columns: 190px 280px minmax(0, 1fr); } .side .hint { display: none; } }
 @media (max-width: 720px) {
   body { overflow: auto; }
@@ -167,6 +168,8 @@ function icon(p) {
   if (p.unsure) return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="2 2"/><circle cx="7" cy="7" r="1.6" fill="var(--warn)"/></svg>`;
   return `<svg class="icon" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="var(--fg-2)" stroke-width="1.5"/></svg>`;
 }
+// Only a path on this site or an http(s) address goes in the frame.
+const lookUrl = (v) => typeof v === "string" && (/^\/(?!\/)/.test(v) || /^https?:\/\//i.test(v)) ? v : null;
 const tag = (t) => { const [n, c] = tinfo(t); return `<span class="tag"><span class="dot" style="background:${c}"></span>${esc(n)}</span>`; };
 
 function renderNav() {
@@ -187,7 +190,7 @@ function renderList() {
   $("rows").innerHTML = ps.length ? ps.map((p) => `<div class="row${p.id === S.cur ? " on" : ""}" data-id="${esc(p.id)}" tabindex="0">
       ${icon(p)}<div class="title">${esc(p.title)}</div><div class="date">${fmt(lastDate(p))}</div>
       <div class="sub">${tag(place(p))}<span>${esc((p.action || "").replace(/_/g, " "))}</span></div></div>`).join("")
-    : `<div class="empty">${S.docs.length ? "Nothing here. You're done with this view." : "No proposals yet. Claude adds them after each run."}</div>`;
+    : `<div class="empty">${S.docs.length ? "Nothing here. You're done with this view." : "No suggestions yet. New ones appear after each run."}</div>`;
 }
 
 function renderDetail() {
@@ -207,7 +210,7 @@ function renderDetail() {
   const statusText = s === "pushed" ? `${icon(p)} Written${p.pushed.url ? ` <a href="${esc(p.pushed.url)}" target="_blank" rel="noreferrer">link ↗</a>` : ""}` : s === "approved" ? `${icon(p)} Approved${who}` : s === "rejected" ? `${icon(p)} Rejected${who}` : `${icon(p)} Waiting for review`;
   $("detail").innerHTML = `<div class="d-wrap">
     <button class="btn back" data-act="back">← All items</button>
-    <div class="crumbs">${tag(place(p))}<span>·</span><span>${esc((p.action || "").replace(/_/g, " "))}</span><span>·</span><span>${esc(p.id)}</span></div>
+    <div class="crumbs">${tag(place(p))}<span>·</span><span>${esc((p.action || "").replace(/_/g, " "))}</span></div>
     <h1>${esc(p.title)}</h1>
     <div class="toolbar">
       ${s === "pushed" ? "" : S.editing === p.id ? `<button class="btn primary" data-act="save">Save text</button><button class="btn" data-act="cancel">Cancel</button>`
@@ -217,18 +220,19 @@ function renderDetail() {
          ${s !== "pending" ? `<button class="btn" data-act="reset">Undo <kbd>U</kbd></button>` : ""}`}
       <span class="status">${statusText}</span>
     </div>
-    ${p.unsure && s !== "pushed" ? `<div class="ask"><small>Claude needs your answer</small>${esc(p.question || "Does this belong here?")}
+    ${lookUrl(p.look) ? `<iframe class="look" src="${esc(lookUrl(p.look))}" title="How the change looks" loading="lazy" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>` : ""}
+    ${p.unsure && s !== "pushed" ? `<div class="ask"><small>A question for you</small>${esc(p.question || "Does this belong here?")}
       <textarea id="note" rows="2" placeholder="Type your answer">${esc(S.draft[p.id] ?? p.decision?.comment ?? "")}</textarea>
       <div class="toolbar" id="notectl" data-label="Save answer">${noteCtl(p, "Save answer")}</div></div>` : ""}
     <div class="section"><h2>What gets written</h2>
       ${S.editing === p.id ? `<textarea id="edit" rows="10">${esc(body)}</textarea>` : `<div class="body">${esc(body)}</div>`}
       ${p.decision?.body != null && p.decision.body !== p.body ? `<div class="edited">You edited this text.</div>` : ""}</div>
     <div class="section"><h2>Details</h2><dl class="props">${props.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
-    <div class="section"><h2>Messages (${(p.citations || []).length})</h2><div class="cites">${(p.citations || []).map((c) => `<div class="cite">
+    ${(p.citations || []).length ? `<div class="section"><h2>Messages (${p.citations.length})</h2><div class="cites">${(p.citations || []).map((c) => `<div class="cite">
       <div class="who"><b>${esc(c.author)}</b><span>${esc(c.channel)}</span><span>${fmt(c.date)}</span>${c.link ? `<a href="${esc(c.link)}" target="_blank" rel="noreferrer">Message ↗</a>` : ""}</div>
-      <q>${esc(c.quote)}</q></div>`).join("")}</div></div>
-    ${p.unsure || s === "pushed" ? "" : `<div class="section"><h2>Comment for Claude</h2>
-      <textarea id="note" rows="2" placeholder="Optional">${esc(S.draft[p.id] ?? p.decision?.comment ?? "")}</textarea>
+      <q>${esc(c.quote)}</q></div>`).join("")}</div></div>` : ""}
+    ${p.unsure || s === "pushed" ? "" : `<div class="section"><h2>Your note</h2>
+      <textarea id="note" rows="2" placeholder="Optional. The next run reads it before writing.">${esc(S.draft[p.id] ?? p.decision?.comment ?? "")}</textarea>
       <div class="toolbar" style="margin-top:8px" id="notectl" data-label="Save comment">${noteCtl(p, "Save comment")}</div></div>`}
   </div>`;
 }
@@ -272,7 +276,7 @@ async function decide(id, patch, advance) {
   const p = S.docs.find((x) => x.id === id); if (!p) return;
   if (p.pushed) { toast("This item is already written. It can no longer change."); return; }
   const note = S.draft[p.id];
-  const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}) };
+  const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}), rev: p.rev ?? 0 };
   if (advance) { const ps = visible(); const i = ps.findIndex((x) => x.id === p.id); S.cur = (ps[i + 1] || ps[i - 1] || {}).id ?? null; }
   S.saving = p.id; S.err = null; refreshCtl();
   try { await S.store.decide(p.id, decision); if (S.draft[p.id] === note) delete S.draft[p.id]; }
@@ -361,8 +365,9 @@ function httpStore() {
     runs(onDocs) { poll("api/runs", onDocs); },
     async decide(id, decision) {
       const r = await fetch("api/proposals/" + encodeURIComponent(id), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) }).catch(() => { throw { message: "no answer from the server" }; });
-      if (!r.ok) throw { message: (await r.json().catch(() => ({}))).error || "the server answered " + r.status };
+      // Reload either way, so a refused decision shows the item as it is now.
       reload();
+      if (!r.ok) throw { message: (await r.json().catch(() => ({}))).error || "the server answered " + r.status };
     },
   };
 }

@@ -25,4 +25,4 @@ exec claude "$prompt" \
   "Bash(python3 $projects/:*)" \
   "Bash($projects/:*)" \
   "Bash(git log:*)" "Bash(git add:*)" "Bash(git commit:*)" "Bash(git pull:*)" "Bash(git push:*)" "Bash(git status:*)" \
-  Read Write Edit Glob Grep ToolSearch ArtifactData ${CONTEXT_INBOX_TOOLS:-}
+  Read Write Edit Glob Grep ToolSearch ArtifactData mcp__context-inbox ${CONTEXT_INBOX_TOOLS:-}
