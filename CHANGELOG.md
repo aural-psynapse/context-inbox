@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/aural-psynapse/context-inbox/compare/v1.5.1...v1.5.2) (2026-11-23)
+
+
+### Bug Fixes
+
+* lint the MCP server's error check the way CI does ([bc2e466](https://github.com/aural-psynapse/context-inbox/commit/bc2e466233efebe6f90448961c9957b06b8480d2))
+
 ## [1.5.1](https://github.com/aural-psynapse/context-inbox/compare/v1.5.0...v1.5.1) (2026-11-23)
 
 
