@@ -25,7 +25,7 @@ Ask the person only what you cannot look up. Done when the first run's items sho
 1. **Ask what to connect.** Which sources and which channels in them, and which destinations. Look up exact channel IDs, team keys and repo names yourself. Config takes exact, case-sensitive IDs only, never display names.
 2. **Make the project folder** in the person's private projects repo, copying [`projects-example/acme/`](projects-example/acme/) and the closest recipe in [`integrations/recipes.md`](integrations/recipes.md). In `RULES.md`, list people by their source user ID, say what counts, and say what goes to which destination.
 3. **Wire each source** with a reader (see Sources below). Use one from `integrations/` by name when it fits. Test it on one channel with `--only <channel id>` and a cursor file holding `{}`. Check that every line has every field of the message format.
-4. **Wire each destination** with a guide (see Destinations below). Use one from `integrations/` by name when it fits. Confirm you can read the destination with your tools.
+4. **Wire each destination** with a guide (see Destinations below). Use one from `integrations/` by name when it fits. Confirm you can read the destination with your tools. With the MCP server, also write its tools file (see MCP server below).
 5. **Store tokens outside git.** Put each source token in the env var named by `secret`. In a cloud environment, store it as a network secret for the API's host and leave the env var unset.
 6. **Check the config.** Run `python3 connector/check.py <projects repo> <project>` until it exits 0. A repo that holds a single project keeps `config.json` at its top level and passes the folder alone, here and in the runner scripts.
 7. **Set up the review store.** Pick one (see Review store below), set `review_store`, and follow its guide's "Set up". `sqlite` needs nothing but this repo. Put the link people open in `review_page`, and tell the person who can open it.
@@ -111,14 +111,26 @@ To keep the items in a database a site already has, write a guide in the project
 
 ## MCP server
 
-[`server/mcp.py`](server/mcp.py) gives the agent one set of tools for the `sqlite` review store and every destination. Start it as an MCP server over stdio: `python3 server/mcp.py <project folder>`.
+[`server/mcp.py`](server/mcp.py) is the agent's one door to the items and the destinations. Start it as an MCP server over stdio: `python3 server/mcp.py <project folder>`. It works with the `sqlite` review store.
 
 - **Reads** go straight through: `inbox_list`, `inbox_get`, and each destination's read tools, named `<destination id>__<tool>`.
 - **Changes** wait for a person: `propose` saves an item, `withdraw` deletes an undecided one. No tool approves or rejects.
 - **Writes** happen only in `push_approved`. The server writes each approved, unwritten item itself and saves `pushed`.
-- **Keys** live in the server's environment, in the env var each destination's `secret` names. Give the agent session no destination key and no write connector for that tool.
+- **Keys** live in the server's environment, in the env var each destination's `secret` names. Give the agent session no key and no write connector for that destination.
 
-A destination gets a writer when its integration folder holds `tools.py`, such as [`integrations/linear/tools.py`](integrations/linear/tools.py). `tools.py` sets `READ_TOOLS`, `read(tool, args, destination)` and `write(item, destination)`, which returns the record's URL and searches for the marker before it writes. An approved item for a destination with no `tools.py` stays unwritten, and `push_approved` lists it. The agent then writes it by the guide.
+### Wire a destination to the server
+
+Write a tools file for the destination in the project folder, such as `tools/crm.py`, and set `"tools": "tools/crm.py"` on the destination in config. `connector/check.py` checks that the file exists. The file defines:
+
+| Name | What it does |
+|---|---|
+| `READ_TOOLS` | a list of `{ name, description, inputSchema }`, one per read the agent needs to draft good items, such as a search or a get by id. Reads only: no tool here may create, change or delete anything. |
+| `read(tool, args, destination)` | runs one read tool and returns JSON-ready data. |
+| `write(item, destination)` | writes one approved item and returns the record's URL. It uses `decision.body` when present, else `body`, puts `ctx: <item id>` where the guide puts the marker, and searches for that marker first so a write never happens twice. It raises on any failure. |
+
+`destination` is the destination's object from config. Read its key with `os.environ[destination["secret"]]`. Use the Python standard library only. Test `read` against the real tool before the first run, and `write` against a test record the person names.
+
+A destination without `tools` keeps the old way: the agent writes approved items by the guide, and `push_approved` lists them as waiting.
 
 With the server, the daily run calls `push_approved` for step 1, `propose` and `withdraw` for step 3, `save_cursors` for step 4 and `log_run` for step 5.
 

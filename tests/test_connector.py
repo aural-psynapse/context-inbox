@@ -78,6 +78,23 @@ class ConnectorTest(unittest.TestCase):
                 self.assertEqual(code, 1, err)
                 self.assertNotIn("Traceback", err)
 
+    def test_tools_file(self):
+        ok = [{"id": "C0123456789", "feeds": ["d"]}]
+        with_tools = {
+            **slack(ok),
+            "destinations": [{"id": "d", "type": "crm", "guide": "./g.md", "tools": "tools/crm.py"}],
+        }
+        self.assertEqual(check(with_tools, ["crm.py", "g.md"])[0], 1)
+        self.assertEqual(
+            check(
+                {**with_tools, "destinations": [{"id": "d", "type": "crm", "guide": "./g.md", "tools": "crm.py"}]},
+                ["crm.py", "g.md"],
+            )[0],
+            0,
+        )
+        outside = {**slack(ok), "destinations": [{"id": "d", "type": "crm", "guide": "./g.md", "tools": "../x.py"}]}
+        self.assertEqual(check(outside)[0], 1)
+
     def test_example_project_passes(self):
         r = subprocess.run(
             [sys.executable, CHECK, os.path.join(REPO, "projects-example")], capture_output=True, text=True

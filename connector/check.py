@@ -57,7 +57,7 @@ def resolve(project: Path, value: str, kind: str, errors: list, label: str):
             errors.append(f"{label}: {kind} {value!r} points outside the project folder")
             return None
     else:
-        p = REPO / "integrations" / value / ("reader.py" if kind == "reader" else "guide.md")
+        p = REPO / "integrations" / value / {"reader": "reader.py", "tools": "tools.py"}.get(kind, "guide.md")
     if not p.is_file():
         errors.append(f"{label}: {kind} not found at {p}")
         return None
@@ -129,6 +129,9 @@ def check(project: Path) -> dict:
             errors.append(f"{label}: type missing")
         guide = resolve(project, d.get("guide", d.get("type")), "guide", errors, label)
         dests[did] = {**d, "guide_path": str(guide) if guide else None}
+        if "tools" in d:
+            tools = resolve(project, d["tools"], "tools", errors, label)
+            dests[did]["tools_path"] = str(tools) if tools else None
     out["destinations"] = list(dests.values())
 
     sources = []

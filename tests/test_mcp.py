@@ -4,70 +4,67 @@ import os
 import subprocess
 import sys
 import tempfile
-import threading
 import unittest
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "integrations", "sqlite"))
 import store  # noqa: E402
 
+TOOLS = """
+import json, os
+from pathlib import Path
 
-class FakeLinear(BaseHTTPRequestHandler):
-    """Answers the few GraphQL calls the Linear writer makes, and remembers every call."""
+READ_TOOLS = [{"name": "find", "description": "Records holding the words.",
+               "inputSchema": {"type": "object", "properties": {"q": {"type": "string"}}}}]
 
-    calls: list = []
-    issues: list = []
 
-    def log_message(self, *a):
-        pass
+def _log(dest):
+    return Path(dest["log"])
 
-    def do_POST(self):
-        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        q, v = body["query"], body["variables"]
-        self.calls.append({"query": q, "variables": v, "auth": self.headers.get("Authorization")})
-        if "searchIssues" in q:
-            data = {"searchIssues": {"nodes": [i for i in self.issues if v["t"] in i["description"]]}}
-        elif "teams" in q:
-            data = {"teams": {"nodes": [{"id": "team-1"}] if v["k"] == "ACM" else []}}
-        elif "issueCreate" in q:
-            issue = {"url": f"https://linear.test/ACM-{len(self.issues) + 1}", "description": v["i"]["description"]}
-            self.issues.append(issue)
-            data = {"issueCreate": {"success": True, "issue": {"url": issue["url"]}}}
-        else:
-            data = None
-        out = json.dumps({"data": data} if data else {"errors": [{"message": "unknown query"}]}).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(out)))
-        self.end_headers()
-        self.wfile.write(out)
+
+def _records(dest):
+    p = _log(dest)
+    return [json.loads(x) for x in p.read_text().splitlines()] if p.exists() else []
+
+
+def read(tool, args, dest):
+    return [r for r in _records(dest) if args.get("q", "") in r["text"]]
+
+
+def write(item, dest):
+    if os.environ.get(dest["secret"]) != "server-only-key":
+        raise RuntimeError("no key")
+    marker = "ctx: " + item["id"]
+    for r in _records(dest):
+        if marker in r["text"]:
+            return r["url"]
+    body = (item.get("decision") or {}).get("body") or item["body"]
+    url = "https://tracker.test/" + str(len(_records(dest)) + 1)
+    with _log(dest).open("a") as f:
+        f.write(json.dumps({"url": url, "text": body + "\\n\\n" + marker}) + "\\n")
+    return url
+"""
 
 
 class McpTest(unittest.TestCase):
     def setUp(self):
-        FakeLinear.calls, FakeLinear.issues = [], []
-        self.linear = ThreadingHTTPServer(("127.0.0.1", 0), FakeLinear)
-        threading.Thread(target=self.linear.serve_forever, daemon=True).start()
-        self.addCleanup(self.linear.server_close)
-        self.addCleanup(self.linear.shutdown)
         self.dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.dir.cleanup)
         self.db = os.path.join(self.dir.name, "review.db")
+        self.log = os.path.join(self.dir.name, "tracker.jsonl")
+        os.makedirs(os.path.join(self.dir.name, "tools"))
+        with open(os.path.join(self.dir.name, "tools", "tracker.py"), "w") as f:
+            f.write(TOOLS)
         config = {
             "sources": [],
             "destinations": [
-                {"id": "lin", "type": "linear", "guide": "linear", "team": "ACM", "secret": "TEST_LINEAR_KEY"},
-                {"id": "crm", "type": "attio", "guide": "attio"},
+                {"id": "lin", "type": "tracker", "tools": "tools/tracker.py", "secret": "TRACKER_KEY", "log": self.log},
+                {"id": "crm", "type": "crm", "guide": "attio"},
             ],
         }
         with open(os.path.join(self.dir.name, "config.json"), "w") as f:
             json.dump(config, f)
-        env = {
-            **os.environ,
-            "TEST_LINEAR_KEY": "lin_test_key",
-            "LINEAR_API_URL": f"http://127.0.0.1:{self.linear.server_address[1]}",
-        }
+        env = {**os.environ, "TRACKER_KEY": "server-only-key"}
         self.proc = subprocess.Popen(
             [sys.executable, os.path.join(REPO, "server", "mcp.py"), self.dir.name],
             stdin=subprocess.PIPE,
@@ -102,8 +99,8 @@ class McpTest(unittest.TestCase):
         return {
             "id": doc_id,
             "dest": "lin",
-            "target": "linear",
-            "action": "create_issue",
+            "target": "tracker",
+            "action": "create",
             "title": "T",
             "body": "Body",
             "citations": [],
@@ -112,11 +109,11 @@ class McpTest(unittest.TestCase):
 
     def test_tools_offer_no_way_to_decide(self):
         names = [t["name"] for t in self.rpc("tools/list")["tools"]]
-        self.assertIn("lin__search_issues", names)
+        self.assertIn("lin__find", names)
         self.assertIn("push_approved", names)
         self.assertFalse([n for n in names if "decide" in n or "approve" in n.replace("push_approved", "")])
 
-    def test_nothing_reaches_linear_without_approval(self):
+    def test_nothing_is_written_without_approval(self):
         _, err = self.tool("propose", item=self.item(decision={"status": "approved"}, pushed={"url": "x"}))
         self.assertFalse(err)
         saved = store.get_doc(self.db, "proposals", "lin--1")
@@ -124,28 +121,32 @@ class McpTest(unittest.TestCase):
         self.assertNotIn("decision", saved)
         result, _ = self.tool("push_approved")
         self.assertEqual(result["written"], [])
-        self.assertFalse([c for c in FakeLinear.calls if "issueCreate" in c["query"]])
+        self.assertFalse(os.path.exists(self.log))
+
+    def records(self):
+        with open(self.log) as f:
+            return [json.loads(x) for x in f]
 
     def test_approved_item_is_written_once_with_the_server_key(self):
         self.tool("propose", item=self.item())
         store.update_doc(self.db, "proposals", "lin--1", {"decision": {"status": "approved", "body": "Edited"}})
         result, _ = self.tool("push_approved")
-        self.assertEqual(result["written"], [{"id": "lin--1", "url": "https://linear.test/ACM-1"}])
-        create = [c for c in FakeLinear.calls if "issueCreate" in c["query"]]
-        self.assertEqual(create[0]["variables"]["i"]["description"], "Edited\n\nctx: lin--1")
-        self.assertEqual(create[0]["auth"], "lin_test_key")
-        self.assertEqual(store.get_doc(self.db, "proposals", "lin--1")["pushed"]["url"], "https://linear.test/ACM-1")
+        self.assertEqual(result["written"], [{"id": "lin--1", "url": "https://tracker.test/1"}])
+        self.assertEqual(self.records()[0]["text"], "Edited\n\nctx: lin--1")
+        self.assertEqual(store.get_doc(self.db, "proposals", "lin--1")["pushed"]["url"], "https://tracker.test/1")
+        self.assertEqual(self.tool("lin__find", q="Edited")[0][0]["url"], "https://tracker.test/1")
         again, _ = self.tool("push_approved")
         self.assertEqual(again["written"], [])
-        self.assertEqual(len(FakeLinear.issues), 1)
+        self.assertEqual(len(self.records()), 1)
 
     def test_write_that_went_through_is_not_repeated(self):
-        FakeLinear.issues.append({"url": "https://linear.test/ACM-9", "description": "old\n\nctx: lin--1"})
+        with open(self.log, "w") as f:
+            f.write(json.dumps({"url": "https://tracker.test/9", "text": "old\n\nctx: lin--1"}) + "\n")
         self.tool("propose", item=self.item())
         store.update_doc(self.db, "proposals", "lin--1", {"decision": {"status": "approved"}})
         result, _ = self.tool("push_approved")
-        self.assertEqual(result["written"][0]["url"], "https://linear.test/ACM-9")
-        self.assertFalse([c for c in FakeLinear.calls if "issueCreate" in c["query"]])
+        self.assertEqual(result["written"][0]["url"], "https://tracker.test/9")
+        self.assertEqual(len(self.records()), 1)
 
     def test_decided_items_are_frozen(self):
         self.tool("propose", item=self.item())

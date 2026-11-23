@@ -18,9 +18,10 @@ without an approval. A person decides on the review page. The keys for each
 destination stay in this server's environment, in the env var the
 destination's `secret` names, so the agent session never needs them.
 
-A destination gets a writer when its integration folder holds `tools.py`.
-Items for any other destination stay approved and unwritten here, and
-push_approved lists them.
+A destination gets read tools and a writer when config sets its `tools`: an
+integration name (integrations/<name>/tools.py) or a path to a Python file in
+the project folder. AGENTS.md says what that file holds. Approved items for a
+destination without `tools` stay unwritten here, and push_approved lists them.
 """
 
 import argparse
@@ -49,6 +50,21 @@ def decided(doc: dict) -> bool:
     return bool(doc.get("pushed")) or status in ("approved", "rejected")
 
 
+def tools_path(project: Path, value):
+    """Same rule as connector/check.py: a value with "/" or a file extension is a path in the project folder."""
+    if not isinstance(value, str) or not value:
+        return None
+    if "/" in value or value.endswith(".py"):
+        path = (project / value).resolve()
+        if project.resolve() not in path.parents:
+            raise SystemExit(f"tools {value!r} points outside the project folder")
+    else:
+        path = REPO / "integrations" / value / "tools.py"
+    if not path.is_file():
+        raise SystemExit(f"tools not found at {path}")
+    return path
+
+
 def load_tools(path: Path):
     spec = importlib.util.spec_from_file_location(f"ci_tools_{path.parent.name}", path)
     module = importlib.util.module_from_spec(spec)
@@ -63,9 +79,8 @@ class Server:
         self.config = json.loads((project / "config.json").read_text())
         self.dests: dict = {}
         for d in self.config.get("destinations", []):
-            name = d.get("guide", d.get("type"))
-            path = REPO / "integrations" / str(name) / "tools.py"
-            self.dests[d["id"]] = {"config": d, "tools": load_tools(path) if path.is_file() else None}
+            path = tools_path(project, d.get("tools"))
+            self.dests[d["id"]] = {"config": d, "tools": load_tools(path) if path else None}
 
     # -- tool list -----------------------------------------------------------
 

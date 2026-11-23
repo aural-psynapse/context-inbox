@@ -1,7 +1,5 @@
 # Linear
 
-With the MCP server, [`tools.py`](tools.py) writes `create_issue`, `comment_issue` and `update_issue` itself after approval, with a Linear API key in the env var named by `secret`. It does not set `fields.set` or attach `fields.files` yet. Everything below is for writing with the Linear connector instead.
-
 Write with the Linear connector, in the team named by the destination's `team`.
 
 - `create_issue` makes an issue. It starts in the team's first triage or backlog state unless `RULES.md` names one. Project, labels and assignee come from `RULES.md`.
