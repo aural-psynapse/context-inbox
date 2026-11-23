@@ -93,6 +93,8 @@ class ConnectorTest(unittest.TestCase):
             "repeated channel": slack([{"id": "C0123456789", "feeds": ["d"]}, {"id": "C0123456789", "feeds": ["d"]}]),
             "unknown destination": slack([{"id": "C0123456789", "feeds": ["x"]}]),
             "channel id list": slack([{"id": ["C1"], "feeds": ["d"]}]),
+            "old after zero": {**slack([{"id": "C0123456789", "feeds": ["d"]}]), "old_after_hours": 0},
+            "old after text": {**slack([{"id": "C0123456789", "feeds": ["d"]}]), "old_after_hours": "a day"},
             "placeholder page": {
                 **slack([{"id": "C0123456789", "feeds": ["d"]}]),
                 "review_page": "https://claude.ai/artifact/<id>",

@@ -167,3 +167,22 @@ class OnDecideTest(unittest.TestCase):
                 break
             time.sleep(0.05)
         self.assertEqual(sorted(open(log).read().split()), ["a", "b"])
+
+class RunEveryTest(unittest.TestCase):
+    def test_runs_now_and_again_until_stopped(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        log = os.path.join(d.name, "runs.txt")
+        script = os.path.join(d.name, "read.sh")
+        with open(script, "w") as f:
+            f.write(f"#!/bin/sh\necho run >> {log}\n")
+        os.chmod(script, 0o755)
+        stop = threading.Event()
+
+        thread = serve.run_every(0.002, script, stop)
+        time.sleep(0.5)
+        stop.set()
+        thread.join(2)
+
+        self.assertGreaterEqual(len(open(log).read().split()), 2)
+        self.assertFalse(thread.is_alive())
