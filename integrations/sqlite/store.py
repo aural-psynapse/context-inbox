@@ -191,9 +191,11 @@ def page_change(decision: dict):
             raise StoreError("there is no such item")
         if old.get("pushed"):
             raise Refused("This item is already written. It can no longer change.")
-        if str(decision.get("rev", "")) != str(old.get("rev", "")):
+        # An item saved before fingerprints existed gets one now, from the text the page showed.
+        rev = old.get("rev") or text_rev(old)
+        if str(decision.get("rev") or "") not in (rev, "" if not old.get("rev") else rev):
             raise Refused("This item changed while you looked at it. Read the new text, then decide again.")
-        return {**old, "decision": decision}
+        return {**old, "rev": rev, "decision": {**decision, "rev": rev}}
 
     return change
 

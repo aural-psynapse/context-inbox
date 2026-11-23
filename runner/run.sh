@@ -13,19 +13,15 @@ if ! python3 "$here/connector/check.py" "$projects" > /dev/null; then
   exit 1
 fi
 prompt=$(sed "s#<projects repo>/<project>#$projects#" "$here/runner/prompt.txt")
+settings=$(python3 "$here/runner/permissions.py" "$projects")
 cd "$here"
-# Shell access covers only the checker, the readers and the git steps a guide uses.
-# The MCP server's keys and pins sit in Claude Code's own settings, so the run may neither read nor edit them.
+# runner/permissions.py lists what the run may start and what it may not touch.
 # Anything else asks first, since the session reads messages written by outside people.
-# shellcheck disable=SC2086
-exec claude "$prompt" \
-  --add-dir "$projects" \
-  --allowedTools \
-  "Bash(python3 $here/connector/check.py:*)" \
-  "Bash(python3 $here/integrations/:*)" \
-  "Bash(python3 $projects/:*)" \
-  "Bash($projects/:*)" \
-  "Bash(git log:*)" "Bash(git add:*)" "Bash(git commit:*)" "Bash(git pull:*)" "Bash(git push:*)" "Bash(git status:*)" \
-  Read Write Edit Glob Grep ToolSearch ArtifactData mcp__context-inbox ${CONTEXT_INBOX_TOOLS:-} \
-  --disallowedTools \
-  "Read(~/.claude.json)" "Edit(~/.claude.json)" "Read(~/.claude/**)" "Edit(~/.claude/**)"
+# Only this repo's settings load, so the person's own allow rules cannot widen the run's.
+# CONTEXT_INBOX_MCP_CONFIG names the MCP server's registration file, which holds its keys and pins.
+if [ -n "${CONTEXT_INBOX_MCP_CONFIG:-}" ]; then
+  set -- --mcp-config "$CONTEXT_INBOX_MCP_CONFIG"
+else
+  set --
+fi
+exec claude "$prompt" --add-dir "$projects" --settings "$settings" --setting-sources project "$@"

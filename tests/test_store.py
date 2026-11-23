@@ -131,7 +131,9 @@ class ServeTest(unittest.TestCase):
         status, _ = self.call("/api/proposals/d--1", "PATCH", {"decision": {"status": "approved"}, "body": "hacked"})
         self.assertEqual(status, 200)
         items = json.loads(self.call("/api/proposals")[1])
-        self.assertEqual(items, [{"title": "A", "body": "x", "decision": {"status": "approved"}, "id": "d--1"}])
+        rev = serve.store.text_rev({"title": "A", "body": "x"})
+        expected = {"title": "A", "body": "x", "rev": rev, "decision": {"status": "approved", "rev": rev}, "id": "d--1"}
+        self.assertEqual(items, [expected])
 
     def test_written_item_is_locked(self):
         serve.store.set_doc(self.db, "proposals", "d--1", {"title": "A", "pushed": {"url": "u"}})

@@ -221,6 +221,12 @@ class McpTest(unittest.TestCase):
         self.assertIn("changed since it was pinned", result["approved_without_writer"][0]["why"])
         self.assertFalse(os.path.exists(cfg["destinations"][0]["log"]))
 
+    def test_item_saved_before_fingerprints_can_still_be_approved_and_written(self):
+        store.set_doc(self.db, "proposals", "lin--1", {k: v for k, v in self.item().items() if k != "id"})
+        store.write(self.db, "proposals", "lin--1", store.page_change({"status": "approved", "rev": ""}))
+        result, _ = self.tool("push_approved")
+        self.assertEqual(result["written"][0]["id"], "lin--1")
+
     def test_tools_file_changed_after_pinning_is_switched_off(self):
         with open(os.path.join(self.dir.name, "tools", "tracker.py"), "a") as f:
             f.write("\n# edited by a run\n")

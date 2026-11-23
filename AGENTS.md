@@ -120,16 +120,19 @@ To keep the items in a database a site already has, write a guide in the project
 
 ### Register the server
 
-The person runs this once, in a terminal, outside the agent session. It saves the keys in Claude Code's user settings, where only the server process gets them as env vars:
+The person keeps one registration file per project, outside the project folder and this repo, such as `~/.config/context-inbox/<project>.json`. Only the server process gets its `env`:
 
-```sh
-claude mcp add context-inbox --scope user \
-  -e CRM_KEY=<the destination's key> \
-  -e CONTEXT_INBOX_PINS='<output of --print-pins>' \
-  -- python3 <this repo>/server/mcp.py <project folder>
+```json
+{ "mcpServers": { "context-inbox": {
+  "command": "python3",
+  "args": ["<this repo>/server/mcp.py", "<project folder>"],
+  "env": { "CRM_KEY": "<the destination's key>", "CONTEXT_INBOX_PINS": "<output of --print-pins>" }
+} } }
 ```
 
-Use one `-e` per destination `secret`. `claude mcp add --help` lists the options. The run gets the server's tools as `mcp__context-inbox__<tool>`. `runner/run.sh` stops the run from reading or editing `~/.claude.json` and `~/.claude/`, where those keys and pins sit. A run started another way needs the same block.
+Put one `env` entry per destination `secret`. Set `CONTEXT_INBOX_MCP_CONFIG` to the file's path before `runner/run.sh`. The run gets the server's tools as `mcp__context-inbox__<tool>`.
+
+`runner/run.sh` takes the run's permissions from [`runner/permissions.py`](runner/permissions.py) and loads only this repo's Claude Code settings, so the person's own allow rules cannot widen them. The run may start only the programs the config check names. It may not edit this repo, those programs, the tools files or the review store's file. It may neither read nor edit the registration file or Claude Code's own settings. A run started another way needs the same settings: `claude --settings "$(python3 runner/permissions.py <project folder>)" --setting-sources project --mcp-config <registration file>`.
 
 ### Wire a destination to the server
 

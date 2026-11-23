@@ -276,7 +276,7 @@ async function decide(id, patch, advance) {
   const p = S.docs.find((x) => x.id === id); if (!p) return;
   if (p.pushed) { toast("This item is already written. It can no longer change."); return; }
   const note = S.draft[p.id];
-  const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}), rev: p.rev ?? 0 };
+  const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}), rev: p.rev ?? "" };
   if (advance) { const ps = visible(); const i = ps.findIndex((x) => x.id === p.id); S.cur = (ps[i + 1] || ps[i - 1] || {}).id ?? null; }
   S.saving = p.id; S.err = null; refreshCtl();
   try { await S.store.decide(p.id, decision); if (S.draft[p.id] === note) delete S.draft[p.id]; }
