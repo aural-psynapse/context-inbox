@@ -176,6 +176,8 @@ function icon(p) {
 }
 // Only a path on this site or an http(s) address goes in the frame.
 const lookUrl = (v) => typeof v === "string" && (/^\/(?!\/)/.test(v) || /^https?:\/\//i.test(v)) ? v : null;
+// Links a run wrote open only as http(s) addresses, so a javascript: address can never run in the page.
+const webUrl = (v) => typeof v === "string" && /^https?:\/\//i.test(v) ? v : null;
 const tag = (t) => { const [n, c] = tinfo(t); return `<span class="tag"><span class="dot" style="background:${c}"></span>${esc(n)}</span>`; };
 
 function renderNav() {
@@ -209,11 +211,11 @@ function renderDetail() {
   const props = [
     ["Goes to", esc(p.where)],
     (p.fields?.paths || []).length ? ["Files", p.fields.paths.map((f) => `<code>${esc(f)}</code>`).join("<br>")] : null,
-    p.existing?.url ? ["Existing", `<a href="${esc(p.existing.url)}" target="_blank" rel="noreferrer">${esc(p.existing.id || "record")} ↗</a>`] : null,
+    webUrl(p.existing?.url) ? ["Existing", `<a href="${esc(webUrl(p.existing.url))}" target="_blank" rel="noreferrer">${esc(p.existing.id || "record")} ↗</a>`] : null,
     ...fields.map(([k, v]) => [esc(k), esc(typeof v === "object" ? JSON.stringify(v) : v)]),
   ].filter(Boolean);
   const who = p.decision?.by ? (p.decision.by === S.uid ? " by you" : ` by ${esc(S.names?.[p.decision.by] || "Someone")}`) : "";
-  const statusText = publishing(p) ? `${icon(p)} Going on your site…` : s === "pushed" ? `${icon(p)} Written${p.pushed.url ? ` <a href="${esc(p.pushed.url)}" target="_blank" rel="noreferrer">link ↗</a>` : ""}` : s === "approved" ? `${icon(p)} Approved${who}` : s === "rejected" ? `${icon(p)} Rejected${who}` : `${icon(p)} Waiting for review`;
+  const statusText = publishing(p) ? `${icon(p)} Going on your site…` : s === "pushed" ? `${icon(p)} Written${webUrl(p.pushed.url) ? ` <a href="${esc(webUrl(p.pushed.url))}" target="_blank" rel="noreferrer">link ↗</a>` : ""}` : s === "approved" ? `${icon(p)} Approved${who}` : s === "rejected" ? `${icon(p)} Rejected${who}` : `${icon(p)} Waiting for review`;
   $("detail").innerHTML = `<div class="d-wrap">
     <button class="btn back" data-act="back">← All items</button>
     <div class="crumbs">${tag(place(p))}<span>·</span><span>${esc((p.action || "").replace(/_/g, " "))}</span></div>
@@ -235,7 +237,7 @@ function renderDetail() {
       ${p.decision?.body != null && p.decision.body !== p.body ? `<div class="edited">You edited this text.</div>` : ""}</div>
     <div class="section"><h2>Details</h2><dl class="props">${props.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
     ${(p.citations || []).length ? `<div class="section"><h2>Messages (${p.citations.length})</h2><div class="cites">${(p.citations || []).map((c) => `<div class="cite">
-      <div class="who"><b>${esc(c.author)}</b><span>${esc(c.channel)}</span><span>${fmt(c.date)}</span>${c.link ? `<a href="${esc(c.link)}" target="_blank" rel="noreferrer">Message ↗</a>` : ""}</div>
+      <div class="who"><b>${esc(c.author)}</b><span>${esc(c.channel)}</span><span>${fmt(c.date)}</span>${webUrl(c.link) ? `<a href="${esc(webUrl(c.link))}" target="_blank" rel="noreferrer">Message ↗</a>` : ""}</div>
       <q>${esc(c.quote)}</q></div>`).join("")}</div></div>` : ""}
     ${p.unsure || s === "pushed" ? "" : `<div class="section"><h2>Your note</h2>
       <textarea id="note" rows="2" placeholder="Optional. The next run reads it before writing.">${esc(S.draft[p.id] ?? p.decision?.comment ?? "")}</textarea>
