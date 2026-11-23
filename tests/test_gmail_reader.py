@@ -46,7 +46,10 @@ def email(mid, millis, subject="Price request", attachments=()):
         "internalDate": str(millis),
         "payload": {
             "mimeType": "multipart/mixed",
-            "headers": [{"name": "From", "value": "Mary Byrne <mary@design.ie>"}, {"name": "Subject", "value": subject}],
+            "headers": [
+                {"name": "From", "value": "Mary Byrne <mary@design.ie>"},
+                {"name": "Subject", "value": subject},
+            ],
             "parts": parts,
         },
     }
@@ -77,9 +80,17 @@ class GmailReaderTest(unittest.TestCase):
     def test_reads_emails_oldest_first_with_attachment_text(self):
         sheet = xlsx([["Lamp", "Qty"], ["Brass task lamp", "2"]])
         api = FakeGmail(
-            [email("m2", 1_700_000_200_000), email("m1", 1_700_000_100_000, attachments=[
-                ("list.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sheet),
-                ("photo.jpg", "image/jpeg", b"jpg")])],
+            [
+                email("m2", 1_700_000_200_000),
+                email(
+                    "m1",
+                    1_700_000_100_000,
+                    attachments=[
+                        ("list.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sheet),
+                        ("photo.jpg", "image/jpeg", b"jpg"),
+                    ],
+                ),
+            ],
             {"a0": sheet, "a1": b"jpg"},
         )
         cursors = {}

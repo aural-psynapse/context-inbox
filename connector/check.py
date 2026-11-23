@@ -108,7 +108,7 @@ def check(project: Path) -> dict:
     if routine is not None and (not isinstance(routine, str) or not re.match(r"^trig_[A-Za-z0-9]+$", routine)):
         errors.append("routine must be a scheduled task id like trig_01ABC")
     old_after = cfg.get("old_after_hours", 24)
-    if isinstance(old_after, bool) or not isinstance(old_after, (int, float)) or old_after <= 0:
+    if isinstance(old_after, bool) or not isinstance(old_after, int | float) or old_after <= 0:
         errors.append("old_after_hours must be a number of hours above 0, such as 24")
     out["old_after_hours"] = old_after
 

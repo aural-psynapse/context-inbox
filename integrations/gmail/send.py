@@ -78,8 +78,12 @@ def build(email: dict, send_as: str) -> EmailMessage:
             kind = mimetypes.guess_type(path.name)[0] or "image/jpeg"
             maintype, subtype = kind.split("/", 1)
             html_part.add_related(
-                path.read_bytes(), maintype=maintype, subtype=subtype,
-                cid=f"<{picture['content_id']}>", filename=path.name, disposition="inline",
+                path.read_bytes(),
+                maintype=maintype,
+                subtype=subtype,
+                cid=f"<{picture['content_id']}>",
+                filename=path.name,
+                disposition="inline",
             )
     return msg
 
@@ -87,7 +91,9 @@ def build(email: dict, send_as: str) -> EmailMessage:
 def make_post(token: str):
     def post(path: str, body: dict) -> dict:
         req = urllib.request.Request(
-            f"{reader.API}/{path}", data=json.dumps(body).encode(), method="POST",
+            f"{reader.API}/{path}",
+            data=json.dumps(body).encode(),
+            method="POST",
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=reader.TIMEOUT) as r:
@@ -116,7 +122,8 @@ def send(email: dict, send_as: str, get, post) -> dict:
     if found:
         earlier = get(f"messages/{found[0]['id']}", format="minimal")
         thread = earlier["threadId"]
-        return {"id": earlier["id"], "thread_id": thread, "url": f"https://mail.google.com/mail/u/0/#all/{thread}", "already_sent": True}
+        url = f"https://mail.google.com/mail/u/0/#all/{thread}"
+        return {"id": earlier["id"], "thread_id": thread, "url": url, "already_sent": True}
     raw = base64.urlsafe_b64encode(build(email, send_as).as_bytes()).decode()
     body = {"raw": raw}
     thread_id = (email.get("reply_to") or {}).get("thread_id")
@@ -124,7 +131,8 @@ def send(email: dict, send_as: str, get, post) -> dict:
         body["threadId"] = thread_id
     sent = post("messages/send", body)
     thread = sent["threadId"]
-    return {"id": sent["id"], "thread_id": thread, "url": f"https://mail.google.com/mail/u/0/#all/{thread}", "already_sent": False}
+    url = f"https://mail.google.com/mail/u/0/#all/{thread}"
+    return {"id": sent["id"], "thread_id": thread, "url": url, "already_sent": False}
 
 
 def main() -> None:

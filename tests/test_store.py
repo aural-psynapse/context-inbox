@@ -8,6 +8,7 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SQLITE = os.path.join(REPO, "integrations", "sqlite")
@@ -163,10 +164,11 @@ class OnDecideTest(unittest.TestCase):
         patch("b", {"status": "pending", "comment": "make it shorter"})
         patch("c", {"status": "pending"})
         for _ in range(50):
-            if os.path.exists(log) and len(open(log).read().split()) == 2:
+            if os.path.exists(log) and len(Path(log).read_text().split()) == 2:
                 break
             time.sleep(0.05)
-        self.assertEqual(sorted(open(log).read().split()), ["a", "b"])
+        self.assertEqual(sorted(Path(log).read_text().split()), ["a", "b"])
+
 
 class RunEveryTest(unittest.TestCase):
     def test_runs_now_and_again_until_stopped(self):
@@ -184,5 +186,5 @@ class RunEveryTest(unittest.TestCase):
         stop.set()
         thread.join(2)
 
-        self.assertGreaterEqual(len(open(log).read().split()), 2)
+        self.assertGreaterEqual(len(Path(log).read_text().split()), 2)
         self.assertFalse(thread.is_alive())

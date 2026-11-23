@@ -39,8 +39,11 @@ class FakeApi:
         pages = self.pages.get(key, [[]])
         index = 1 if params.get("cursor") else 0
         has_more = index + 1 < len(pages)
-        return {"status": "success", "data": pages[index],
-                "pagination": {"hasMore": has_more, "nextCursor": "next" if has_more else None}}
+        return {
+            "status": "success",
+            "data": pages[index],
+            "pagination": {"hasMore": has_more, "nextCursor": "next" if has_more else None},
+        }
 
 
 class CalcomReaderTest(unittest.TestCase):
@@ -51,8 +54,14 @@ class CalcomReaderTest(unittest.TestCase):
         return ok, out
 
     def test_first_run_reads_every_page_oldest_first(self):
-        api = FakeApi({"created": [[booking("b2", "2026-11-02T09:00:00.000Z")],
-                                   [booking("b1", "2026-11-01T09:00:00.000Z", slug="other")]]})
+        api = FakeApi(
+            {
+                "created": [
+                    [booking("b2", "2026-11-02T09:00:00.000Z")],
+                    [booking("b1", "2026-11-01T09:00:00.000Z", slug="other")],
+                ]
+            }
+        )
         cursors = {}
 
         ok, out = self.run_reader(api, cursors)
@@ -68,14 +77,20 @@ class CalcomReaderTest(unittest.TestCase):
         self.assertEqual(cursors["all"], "2026-11-02T09:00:00.000Z")
 
     def test_later_run_asks_for_new_and_changed_bookings(self):
-        cancelled = booking("b1", "2026-11-01T09:00:00.000Z", "2026-11-03T09:00:00.000Z",
-                            status="cancelled", cancellationReason="No budget.")
+        cancelled = booking(
+            "b1",
+            "2026-11-01T09:00:00.000Z",
+            "2026-11-03T09:00:00.000Z",
+            status="cancelled",
+            cancellationReason="No budget.",
+        )
         api = FakeApi({"created": [[]], "updated": [[cancelled]]})
 
         _, out = self.run_reader(api, {"all": "2026-11-02T09:00:00.000Z"})
 
-        self.assertEqual({tuple(sorted(c)) for c in api.calls[:2]},
-                         {("afterCreatedAt", "limit"), ("afterUpdatedAt", "limit")})
+        self.assertEqual(
+            {tuple(sorted(c)) for c in api.calls[:2]}, {("afterCreatedAt", "limit"), ("afterUpdatedAt", "limit")}
+        )
         message = out["all"][0]
         self.assertTrue(message["text"].startswith("Booking cancelled:"))
         self.assertIn("Reason given: No budget.", message["text"])
