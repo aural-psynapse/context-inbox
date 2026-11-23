@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -133,3 +134,36 @@ class ServeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OnDecideTest(unittest.TestCase):
+    def test_each_decision_starts_the_command_with_the_item_id(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        db = os.path.join(d.name, "review.db")
+        log = os.path.join(d.name, "acted.txt")
+        script = os.path.join(d.name, "act.sh")
+        with open(script, "w") as f:
+            f.write(f'#!/bin/sh\necho "$1" >> {log}\n')
+        os.chmod(script, 0o755)
+        server = serve.make_server(db, port=0, on_decide=script)
+        server.RequestHandlerClass.log_message = lambda *a: None
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        base = f"http://127.0.0.1:{server.server_address[1]}/api/proposals/"
+        for item in ("a", "b", "c"):
+            serve.store.set_doc(db, "proposals", item, {"title": item})
+
+        def patch(item, decision):
+            req = urllib.request.Request(base + item, method="PATCH", data=json.dumps({"decision": decision}).encode())
+            urllib.request.urlopen(req).read()
+
+        patch("a", {"status": "approved"})
+        patch("b", {"status": "pending", "comment": "make it shorter"})
+        patch("c", {"status": "pending"})
+        for _ in range(50):
+            if os.path.exists(log) and len(open(log).read().split()) == 2:
+                break
+            time.sleep(0.05)
+        self.assertEqual(sorted(open(log).read().split()), ["a", "b"])

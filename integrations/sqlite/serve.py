@@ -1,7 +1,7 @@
 """Serve the review page and its items from one SQLite file.
 
 Usage:
-  python3 integrations/sqlite/serve.py DB [--port 47821] [--host 127.0.0.1]
+  python3 integrations/sqlite/serve.py DB [--port 47821] [--host 127.0.0.1] [--on-decide COMMAND]
 
 Open http://127.0.0.1:47821 to review. Stop it with Ctrl-C. The items stay in
 DB, and a run reads and writes DB with store.py whether this is up or not.
@@ -11,10 +11,16 @@ keep the default host, or put the address behind a login you already have.
 
 The page can change one thing: the `decision` on an item that is not written
 yet. It never sees the saved cursors.
+
+--on-decide: after each saved decision, start COMMAND with the item id added as
+its last argument, without waiting for it. runner/act.sh is the command that
+pushes an approved item at once, or rewrites a draft from a typed instruction.
 """
 
 import argparse
 import json
+import shlex
+import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +35,16 @@ MAX_BODY = 1_000_000
 
 class Handler(BaseHTTPRequestHandler):
     db = ""
+    on_decide: list = []
+
+    def act(self, doc_id: str) -> None:
+        """Start the on-decide command for one item and return at once."""
+        if not self.on_decide:
+            return
+        try:
+            subprocess.Popen([*self.on_decide, doc_id], stdin=subprocess.DEVNULL, start_new_session=True)
+        except OSError as e:
+            print(f"on-decide failed for {doc_id}: {e}", file=sys.stderr)
 
     def log_message(self, fmt, *args):
         # The page asks every 5 seconds. Log only what changes something or fails.
@@ -88,15 +104,19 @@ class Handler(BaseHTTPRequestHandler):
             return "This item is already written. It can no longer change." if doc.get("pushed") else None
 
         try:
-            self.send_json(200, store.update_doc(self.db, "proposals", doc_id, {"decision": decision}, refuse=written))
+            saved = store.update_doc(self.db, "proposals", doc_id, {"decision": decision}, refuse=written)
         except store.Refused as e:
             self.send_json(409, {"error": str(e)})
         except store.StoreError as e:
             self.send_json(404, {"error": str(e)})
+        else:
+            self.send_json(200, saved)
+            if decision.get("status") in ("approved", "rejected") or decision.get("comment"):
+                self.act(doc_id)
 
 
-def make_server(db: str, host: str = "127.0.0.1", port: int = 47821) -> ThreadingHTTPServer:
-    handler = type("ReviewHandler", (Handler,), {"db": db})
+def make_server(db: str, host: str = "127.0.0.1", port: int = 47821, on_decide: str = "") -> ThreadingHTTPServer:
+    handler = type("ReviewHandler", (Handler,), {"db": db, "on_decide": shlex.split(on_decide)})
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -105,8 +125,9 @@ def main() -> None:
     ap.add_argument("db")
     ap.add_argument("--port", type=int, default=47821)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--on-decide", default="", help="command started with the item id after each decision")
     a = ap.parse_args()
-    server = make_server(a.db, a.host, a.port)
+    server = make_server(a.db, a.host, a.port, a.on_decide)
     print(f"Review page: http://{a.host}:{a.port}  (Ctrl-C stops it, the items stay in {a.db})")
     try:
         server.serve_forever()
