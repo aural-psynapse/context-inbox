@@ -31,14 +31,20 @@ class PermissionsTest(unittest.TestCase):
                 check=True,
             )
             perms = json.loads(out.stdout)["permissions"]
-            real = os.path.realpath(p)
+            real = os.path.abspath(p)
             self.assertEqual(perms["defaultMode"], "default")
-            self.assertIn(f"Bash(python3 {real}/readers/own.py:*)", perms["allow"])
+            resolved = os.path.realpath(p)
+            self.assertIn(f"Bash(python3 {resolved}/readers/own.py:*)", perms["allow"])
             self.assertFalse([a for a in perms["allow"] if a.startswith("Bash(git")])
             attio = [a for a in perms["allow"] if "attio/upload.py" in a]
-            self.assertEqual(attio, [f"Bash(python3 {REPO}/integrations/attio/upload.py {real}/config.json:*)"])
-            self.assertIn(f"Edit(/{real}/readers/**)", perms["deny"])
+            self.assertIn(f"Bash(python3 {REPO}/integrations/attio/upload.py {resolved}/config.json:*)", attio)
+            self.assertEqual(len(attio), 2)
+            self.assertIn(f"Edit(/{resolved}/readers/**)", perms["deny"])
+            self.assertNotIn("Write", perms["allow"])
+            self.assertNotIn("Edit", perms["allow"])
+            self.assertIn(f"Edit(/{real}/**)", perms["allow"])
             self.assertIn(f"Edit(/{REPO}/**)", perms["deny"])
+            self.assertIn(f"Read(/{os.path.abspath(d)}/server.json)", perms["deny"])
             self.assertIn(f"Read(/{os.path.realpath(d)}/server.json)", perms["deny"])
 
 

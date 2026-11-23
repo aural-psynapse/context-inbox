@@ -125,14 +125,14 @@ The person keeps one registration file per project, outside the project folder a
 ```json
 { "mcpServers": { "context-inbox": {
   "command": "python3",
-  "args": ["<this repo>/server/mcp.py", "<project folder>"],
+  "args": ["-I", "<this repo>/server/mcp.py", "<project folder>"],
   "env": { "CRM_KEY": "<the destination's key>", "CONTEXT_INBOX_PINS": "<output of --print-pins>" }
 } } }
 ```
 
 Put one `env` entry per destination `secret`. Set `CONTEXT_INBOX_MCP_CONFIG` to the file's path before `runner/run.sh`. The run gets the server's tools as `mcp__context-inbox__<tool>`.
 
-`runner/run.sh` takes the run's permissions from [`runner/permissions.py`](runner/permissions.py) and loads only this repo's Claude Code settings, so the person's own allow rules cannot widen them. The run may start only the programs the config check names. It may not edit this repo, those programs, the tools files or the review store's file. It may neither read nor edit the registration file or Claude Code's own settings. A run started another way needs the same settings: `claude --settings "$(python3 runner/permissions.py <project folder>)" --setting-sources project --mcp-config <registration file>`.
+`runner/run.sh` takes the run's permissions from [`runner/permissions.py`](runner/permissions.py) and loads only this repo's Claude Code settings, so the person's own allow rules cannot widen them. The run may start only the programs the config check names. It may write only in the project folder and the temporary folders, and not in those programs, the tools files or the review store's file. `-I` in the registration keeps Python from loading files from the person's own Python folders into the server. It may neither read nor edit the registration file or Claude Code's own settings. The run can still read any file the person can. Nothing it reads leaves this machine through a destination on the server, except inside an item a person approves; a destination without a tools file, written by the agent itself, has no such guard. A run started another way needs the same settings: `claude --settings "$(python3 runner/permissions.py <project folder>)" --setting-sources project --mcp-config <registration file>`.
 
 ### Wire a destination to the server
 

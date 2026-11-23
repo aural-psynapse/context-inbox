@@ -15,20 +15,25 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
 
 
-def rule_path(path) -> str:
-    # In permission rules, "//" starts an absolute path.
-    return "/" + str(Path(path).resolve())
+def rule_paths(path) -> list:
+    """Both spellings of an absolute path, as typed and with links resolved, such as /tmp and /private/tmp.
+
+    A rule matches the path as the session writes it, so it needs each spelling. "//" starts an absolute path.
+    """
+    typed, real = os.path.abspath(path), os.path.realpath(path)
+    return sorted({"/" + typed, "/" + real})
 
 
 def main() -> None:
     if len(sys.argv) != 2:
         sys.exit(__doc__)
-    project = Path(sys.argv[1]).resolve()
+    project = Path(os.path.abspath(sys.argv[1]))
     out = subprocess.run(
         [sys.executable, str(HERE / "connector" / "check.py"), str(project)], capture_output=True, text=True
     )
@@ -44,12 +49,12 @@ def main() -> None:
         allow.append(f"Bash({' '.join(run)}:*)")
         reader = Path(run[-1])
         # Python runs files beside the script first, such as a planted json.py, so lock the reader's folder.
-        programs.append(reader.parent / "**" if project in reader.parents else reader)
+        programs.append(reader.parent / "**" if Path(os.path.realpath(project)) in reader.parents else reader)
         download = reader.parent / "download.py"
         if download.is_file() and HERE in download.parents:
             allow.append(f"Bash(python3 {download}:*)")
             programs.append(download)
-    config = project / "config.json"
+    configs = sorted({str(project / "config.json"), os.path.realpath(project / "config.json")})
     for dest in checked["destinations"]:
         guide = Path(dest.get("guide_path") or "")
         if guide.parent.parent != HERE / "integrations":
@@ -59,9 +64,13 @@ def main() -> None:
                 continue
             # A script whose first argument is CONFIG may run only with this project's config.
             pinned = re.search(r"Usage:\s*\n\s*python3 \S+ CONFIG\b", script.read_text())
-            allow.append(f"Bash(python3 {script} {config}:*)" if pinned else f"Bash(python3 {script}:*)")
+            allow += [f"Bash(python3 {script} {c}:*)" for c in configs] if pinned else [f"Bash(python3 {script}:*)"]
     # No git: `git log --output=<file>` and similar would let the run overwrite any program above.
-    allow += ["Read", "Write", "Edit", "Glob", "Grep", "ToolSearch", "ArtifactData", "mcp__context-inbox"]
+    # Writes go only to the project folder and the temporary folders. A file written anywhere else, such as
+    # usercustomize.py in Python's user folder, could run inside a program that holds keys.
+    writable = [project, Path(tempfile.gettempdir()), Path("/tmp")]
+    allow += [f"Edit({r}/**)" for p in writable for r in rule_paths(p)]
+    allow += ["Read", "Glob", "Grep", "ToolSearch", "ArtifactData", "mcp__context-inbox"]
     allow += os.environ.get("CONTEXT_INBOX_TOOLS", "").split()
     locked = [HERE / "**", project / "review.db", project / "review.db-*", *programs]
     locked += [d["tools_path"] for d in checked["destinations"] if d.get("tools_path")]
@@ -69,8 +78,8 @@ def main() -> None:
     server_file = os.environ.get("CONTEXT_INBOX_MCP_CONFIG")
     if server_file:
         # The MCP server's registration holds the destination keys and pins.
-        deny += [f"Read({rule_path(server_file)})", f"Edit({rule_path(server_file)})"]
-    deny += [f"Edit({rule_path(p)})" for p in locked]
+        deny += [f"{tool}({r})" for tool in ("Read", "Edit") for r in rule_paths(server_file)]
+    deny += [f"Edit({r})" for p in locked for r in rule_paths(p)]
     # "default" asks the person before anything not allowed here, whatever their own settings say.
     print(json.dumps({"permissions": {"defaultMode": "default", "allow": allow, "deny": deny}}))
 

@@ -76,7 +76,7 @@ class McpTest(unittest.TestCase):
     def start(self, env):
         self.env = env
         self.proc = subprocess.Popen(
-            [sys.executable, os.path.join(REPO, "server", "mcp.py"), self.dir.name],
+            [sys.executable, "-I", os.path.join(REPO, "server", "mcp.py"), self.dir.name],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             text=True,
