@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/aural-psynapse/context-inbox/compare/v1.4.1...v1.5.0) (2026-11-23)
+
+
+### Features
+
+* a project's name in config shows in the review page's tab and top left ([f995888](https://github.com/aural-psynapse/context-inbox/commit/f995888765493e6c34b3b9184fa538229d77bc90))
+
 ## [1.4.1](https://github.com/aural-psynapse/context-inbox/compare/v1.4.0...v1.4.1) (2026-11-23)
 
 

@@ -7,7 +7,7 @@ One file holds the items, the saved cursors and the run log. [`store.py`](store.
 1. The file is `review.db` in the project folder. `store.py` makes it on first use.
 2. Add `review.db*` to the `.gitignore` of the projects repo. The file holds quotes from messages.
 3. In `config.json`, set `"review_store": "sqlite"` and `"review_page": "http://127.0.0.1:47821"`.
-4. Start the page and give the person the link and this command:
+4. Start the page and give the person the link and this command. The page shows the `name` from the `config.json` beside the file, or `--config` names another:
    ```sh
    python3 integrations/sqlite/serve.py <project folder>/review.db
    ```

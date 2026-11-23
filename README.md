@@ -131,6 +131,7 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 
 | Key | Meaning |
 |---|---|
+| `name` | Optional. The project's name, shown in the browser tab and at the top left of the review page in place of "Context Inbox". |
 | `review_page` | The link people open to review. |
 | `review_store` | Where the items live: `sqlite`, `claude-artifact`, or a path to your own guide inside the project folder. |
 | `routine` | Optional. Id of the scheduled task, such as `trig_01ABC`, so `runner/fire.sh` can start it. |

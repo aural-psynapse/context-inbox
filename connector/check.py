@@ -30,7 +30,7 @@ SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
 URL = re.compile(r"^https?://[^\s<>]+$")
 PLACEHOLDER = re.compile(r"replace|example|00000000")
-TOP_KEYS = {"project", "review_page", "review_store", "routine", "old_after_hours", "sources", "destinations"}
+TOP_KEYS = {"project", "name", "review_page", "review_store", "routine", "old_after_hours", "sources", "destinations"}
 TYPOS = {
     "feed": "feeds",
     "channel": "channels",
@@ -91,6 +91,10 @@ def check(project: Path) -> dict:
     unknown(cfg, TOP_KEYS, "config", errors)
     if not (project / "RULES.md").is_file():
         errors.append("RULES.md missing")
+    name = cfg.get("name")
+    if name is not None and (not isinstance(name, str) or not name.strip() or len(name) > 60 or "\n" in name):
+        errors.append('name must be one line of text, at most 60 characters, such as "Acme outreach"')
+    out["name"] = name.strip() if isinstance(name, str) and name.strip() else "Context Inbox"
     page = cfg.get("review_page")
     real = isinstance(page, str) and not PLACEHOLDER.search(page)
     # Configs written before review_store existed all kept their items on claude.ai.

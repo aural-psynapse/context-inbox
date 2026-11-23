@@ -107,6 +107,13 @@ class ConnectorTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('"name": "sqlite"', r.stdout)
 
+    def test_name(self):
+        ok = [{"id": "C0123456789", "feeds": ["d"]}]
+        self.assertEqual(check({**slack(ok), "name": "Acme outreach"})[0], 0)
+        for bad in ("", "   ", "two\nlines", "x" * 61, 7):
+            with self.subTest(repr(bad)):
+                self.assertEqual(check({**slack(ok), "name": bad})[0], 1)
+
     def test_errors(self):
         bad = {
             "channel name": slack([{"id": "general", "feeds": ["d"]}]),
