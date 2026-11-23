@@ -1,0 +1,5 @@
+Act on one review item now, for project folder <projects repo>/<project>, following context-inbox/AGENTS.md. Run its step 0 check, then read the review store's guide and the project's RULES.md. Then read the item with id <item id> and do only this:
+- Approved and not yet written: write it to its destination exactly as step 1 of the daily run says, and save its `pushed` right away.
+- Undecided with a `decision.comment`: treat the comment as an instruction for this draft. Rewrite the item's text to follow it, keeping its id, and save it. Keep the comment. Do not decide the item.
+- Anything else: do nothing.
+Touch no other item. Write no runs doc.

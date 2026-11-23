@@ -28,6 +28,20 @@ Every command starts with `python3 integrations/sqlite/store.py <project folder>
 
 `set` replaces the whole doc. `update` replaces only the top-level keys it is given and exits 1 when the doc does not exist.
 
+## Act the moment a person decides
+
+Start the page with `--on-decide` and each decision takes effect at once, with no wait for the daily run:
+
+```sh
+python3 integrations/sqlite/serve.py <project folder>/review.db --on-decide "runner/act.sh <projects repo> <project>"
+```
+
+- Approve: `runner/act.sh` writes that item to its destination now and saves `pushed`.
+- A comment typed on an undecided item: it rewrites the draft to follow the comment. The page shows the new text within 5 seconds.
+- Reject: nothing to do.
+
+Each action is logged in `act.log` in the project folder. The daily run still pushes anything approved while the page was down.
+
 ## The page
 
 - The page is up only while `serve.py` runs. A run does not need it: it uses `store.py` on the file.
