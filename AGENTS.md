@@ -129,7 +129,7 @@ claude mcp add context-inbox --scope user \
   -- python3 <this repo>/server/mcp.py <project folder>
 ```
 
-Use one `-e` per destination `secret`. `claude mcp add --help` lists the options. The run gets the server's tools as `mcp__context-inbox__<tool>`.
+Use one `-e` per destination `secret`. `claude mcp add --help` lists the options. The run gets the server's tools as `mcp__context-inbox__<tool>`. `runner/run.sh` stops the run from reading or editing `~/.claude.json` and `~/.claude/`, where those keys and pins sit. A run started another way needs the same block.
 
 ### Wire a destination to the server
 

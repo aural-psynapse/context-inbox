@@ -15,6 +15,7 @@ fi
 prompt=$(sed "s#<projects repo>/<project>#$projects#" "$here/runner/prompt.txt")
 cd "$here"
 # Shell access covers only the checker, the readers and the git steps a guide uses.
+# The MCP server's keys and pins sit in Claude Code's own settings, so the run may neither read nor edit them.
 # Anything else asks first, since the session reads messages written by outside people.
 # shellcheck disable=SC2086
 exec claude "$prompt" \
@@ -25,4 +26,6 @@ exec claude "$prompt" \
   "Bash(python3 $projects/:*)" \
   "Bash($projects/:*)" \
   "Bash(git log:*)" "Bash(git add:*)" "Bash(git commit:*)" "Bash(git pull:*)" "Bash(git push:*)" "Bash(git status:*)" \
-  Read Write Edit Glob Grep ToolSearch ArtifactData mcp__context-inbox ${CONTEXT_INBOX_TOOLS:-}
+  Read Write Edit Glob Grep ToolSearch ArtifactData mcp__context-inbox ${CONTEXT_INBOX_TOOLS:-} \
+  --disallowedTools \
+  "Read(~/.claude.json)" "Edit(~/.claude.json)" "Read(~/.claude/**)" "Edit(~/.claude/**)"
