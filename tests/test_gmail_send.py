@@ -85,3 +85,17 @@ class GmailSendTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DailyLimitTest(unittest.TestCase):
+    def test_counts_emails_sent_since_midnight(self):
+        queries = []
+
+        def get(path, **params):
+            queries.append(params["q"])
+            if "pageToken" in params:
+                return {"messages": [{"id": "c"}]}
+            return {"messages": [{"id": "a"}, {"id": "b"}], "nextPageToken": "next"}
+
+        self.assertEqual(send.sent_today(get, SEND_AS, 1_700_000_000.5), 3)
+        self.assertEqual(queries[0], f"in:sent from:{SEND_AS} after:1699920000")

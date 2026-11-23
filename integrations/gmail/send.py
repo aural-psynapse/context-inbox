@@ -27,6 +27,10 @@ Token: the env var named by the destination's "secret" holds JSON
 {"client_id", "client_secret", "refresh_token"} from a Google OAuth client with the
 gmail.send and gmail.readonly scopes, or an access token.
 
+Daily limit: when the destination sets "daily_limit", the script counts emails sent
+from send_as since midnight UTC and refuses to send once that many went out. It then
+exits 3 and prints {"limit_reached": true}, and the item stays approved for the next day.
+
 Prints {"id", "thread_id", "url", "already_sent"} as JSON.
 """
 
@@ -37,6 +41,7 @@ import json
 import mimetypes
 import os
 import sys
+import time
 import urllib.request
 from email.message import EmailMessage
 from email.utils import formatdate
@@ -91,6 +96,20 @@ def make_post(token: str):
     return post
 
 
+def sent_today(get, send_as: str, now: float) -> int:
+    midnight = int(now // 86400 * 86400)
+    found, token = 0, ""
+    while True:
+        params = {"q": f"in:sent from:{send_as} after:{midnight}", "maxResults": "500"}
+        if token:
+            params["pageToken"] = token
+        data = get("messages", **params)
+        found += len(data.get("messages", []))
+        token = data.get("nextPageToken", "")
+        if not token:
+            return found
+
+
 def send(email: dict, send_as: str, get, post) -> dict:
     mid = message_id(email["item_id"], send_as)
     found = get("messages", q=f"rfc822msgid:{mid}", includeSpamTrash="true").get("messages", [])
@@ -120,7 +139,12 @@ def main() -> None:
         sys.exit(f"destination {dest_id!r} needs a send_as address")
     token = reader.access_token(os.environ.get(dest.get("secret", ""), ""))
     email = json.loads(Path(email_path).read_text())
-    result = send(email, dest["send_as"], reader.make_get(token), make_post(token))
+    get = reader.make_get(token)
+    limit = dest.get("daily_limit")
+    if limit and sent_today(get, dest["send_as"], time.time()) >= int(limit):
+        print(json.dumps({"limit_reached": True}))
+        sys.exit(3)
+    result = send(email, dest["send_as"], get, make_post(token))
     print(json.dumps(result))
 
 

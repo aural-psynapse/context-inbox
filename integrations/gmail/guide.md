@@ -10,6 +10,7 @@ python3 integrations/gmail/send.py CONFIG <destination id> <email json>
 - `send_email`: one email. Write the email JSON the script's docstring describes from the item: `to`, `subject`, `text`, `html`, `pictures`, and `reply_to` when the item answers an earlier email. Use `decision.body` when present, else `body`, word for word.
 - The marker: the script turns the item id into the email's Message-ID and searches for it before sending, so a second push never sends twice. Recipients never see the marker.
 - `pushed.url` is the `url` the script prints, the Gmail thread.
+- `daily_limit` in config caps emails per day from `send_as`. Exit 3 means the cap is reached: leave the item approved and unwritten, and log it in the run's `errors` as "daily limit reached". The next day's run sends it.
 
 ## A complete record
 
