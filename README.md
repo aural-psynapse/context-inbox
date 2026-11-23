@@ -30,6 +30,7 @@ Context Inbox does the copying. Every day an agent reads the new messages and dr
 ## Highlights
 
 - **Nothing is written without a yes.** Every update waits on the review page until a person approves it.
+- **The agent never holds the keys.** With the [MCP server](server/mcp.py), the agent reads and proposes, and only the server writes, once a person approved that exact text.
 - **Every fact has a source.** Each draft quotes the messages behind it, with author, date and a link to the message.
 - **No double writes.** Each written record carries a `ctx:` marker. The agent looks for it before writing, so a repeated run does not write the same record twice.
 - **Late replies count.** Readers keep a cursor per channel and pick up new replies in threads of any age.
@@ -40,7 +41,7 @@ Context Inbox does the copying. Every day an agent reads the new messages and dr
 
 ## Quickstart
 
-You need Claude Code, a claude.ai account and Python 3.10+.
+You need Claude Code and Python 3.10+.
 
 Open this repo in a coding agent and tell it what to connect:
 
@@ -49,7 +50,7 @@ Set up context-inbox for project "acme" following AGENTS.md.
 Read #sales and #support in our Slack. Write deals to Attio and bugs to Linear.
 ```
 
-The agent finds the channel IDs, picks a reader and a guide for each tool, checks the config, publishes the review page and runs once. Then it offers to schedule a daily run.
+The agent finds the channel IDs, picks a reader and a guide for each tool, checks the config, starts the review page and runs once. Then it offers to schedule a daily run.
 
 After that, your part is the review page. Approve what is right, and the next run writes it.
 
@@ -68,11 +69,15 @@ To set it up by hand, see [Manual setup](#manual-setup).
 1. A **reader** fetches messages newer than each channel's cursor.
 2. The agent drafts **items** by the rules in your project's `RULES.md`, each with quotes and links.
 3. You **review** them. When the agent is unsure, it asks a question, and your answer goes into the next run.
-4. The next run **writes** the approved items, following the destination's **guide**, and saves a link to each record.
+4. The next run **writes** the approved items, following the destination's **guide**, and saves a link to each record. With the MCP server, the server does this write, with keys the agent never sees.
 
 ## The review page
 
 Items wait here until someone decides. You answer the agent's questions, follow each written item to its record, and see what every run did.
+
+- **See the change.** An item with a `look` address shows that page in a frame above the text, such as a website before and after.
+- **Watch it go live.** While a destination publishes an approved change, the item shows "Going on your site…" until it is written.
+- **Tell pages apart.** `name` in the project's config replaces "Context Inbox" in the browser tab and at the top left.
 
 <table>
   <tr>
@@ -98,9 +103,10 @@ Items wait here until someone decides. You answer the agent's questions, follow 
 
 | Part | What it does |
 |---|---|
+| [MCP server](server/mcp.py) | The agent's one door to the items and the destinations. Reads go through, changes wait for a person, and only approved items get written. |
 | [Connector](connector/check.py) | Finds your projects repo and checks every config. A mistake stops the run before it reads a message. |
 | [Review page](ui/review.html) | Approve, reject, edit and answer. Filters by status and destination. Run log. |
-| [Runner](runner/) | The daily prompt. [`fire.sh`](runner/fire.sh) starts a run from any agent or script. [`run.sh`](runner/run.sh) runs once while you watch. |
+| [Runner](runner/) | The daily prompt. [`fire.sh`](runner/fire.sh) starts a run from any agent or script. [`run.sh`](runner/run.sh) runs once while you watch. [`act.sh`](runner/act.sh) acts on one decision at once, [`read-now.sh`](runner/read-now.sh) reads on a timer. [`permissions.py`](runner/permissions.py) limits what each run may start and write. |
 | [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
 | [Skills and hook](.claude/) | Claude Code skills for setup and run-now. A hook that refuses the destination writes it lists when they lack a `ctx:` marker, and any chat post. |
 | [Example projects repo](projects-example/) | Acme: Slack to Linear and Slack to Attio. |
@@ -120,7 +126,8 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
    ```
    It has no login and answers on your machine only. To review on claude.ai with your team signed in, follow [`integrations/claude-artifact/guide.md`](integrations/claude-artifact/guide.md). To keep the items in a database you already have, see "Review store" in [`AGENTS.md`](AGENTS.md).
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
-4. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Start extra runs with:
+4. **Optional: keep the keys out of the agent's reach.** Put each destination behind the MCP server, as "MCP server" in [`AGENTS.md`](AGENTS.md) describes: a tools file per destination, pinned by you, and one registration file with the keys.
+5. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Start extra runs with:
    ```sh
    runner/fire.sh <projects repo> <project>   # no person needed
    runner/run.sh  <projects repo> <project>   # watch it run
@@ -157,9 +164,11 @@ Other keys on a destination, such as `team` or `repo`, are read by its guide. Ot
 AGENTS.md                instructions for the agent: setup and daily run
 RULES.md                 what a proposal is and its JSON shape
 connector/check.py       finds and checks project configs
+server/mcp.py            MCP server: reads, proposals, approved writes
 integrations/            readers, guides, review stores, recipes
 ui/review.html           review page and run log
-runner/                  daily prompt, fire.sh, run.sh
+ui/named.py              the review page with a project's name
+runner/                  daily prompt, run scripts, permissions.py
 .claude/                 skills and the write check
 projects-example/        a projects repo to copy
 scripts/release.sh       makes a release
