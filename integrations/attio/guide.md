@@ -6,9 +6,12 @@ Write with the Attio connector, in the workspace named by the destination's `wor
 - `add_note`: one short dated note per event. Summarise; never paste chat quotes.
 - `create_task`: a follow-up linked to the deal, with an assignee and a due date.
 - `update_deal`: change the stage or fields. Closing a task works the same way.
+- `add_company_note`: a note on the company record named in `existing`, for facts about the company itself, such as a background note or "Never contact again". `pushed.url` is then the company record URL.
+- `create_deal`: a new deal linked to the company in `existing`, with the stage and fields in `fields.set`. Search the company's deals for the marker first. `pushed.url` is the new deal's URL.
+- `upsert_person`: the contact in `fields.set` (name, job title, email), matched on email and linked to the company in `existing`.
 - The marker goes at the end of note bodies and task text. Search notes and tasks for it.
 - Files in `fields.files` attach to the deal through Attio's file API, since the connector cannot upload: `python3 integrations/attio/upload.py CONFIG <destination id> deals <record id> <path>`. The destination's `secret` names the env var holding an Attio API token with the `file:read-write`, `object_configuration:read` and `record_permission:read` scopes. A note that goes with a file names it.
-- `pushed.url` is the deal record URL.
+- `pushed.url` is the deal record URL, unless the action above names another.
 
 ## A complete record
 
