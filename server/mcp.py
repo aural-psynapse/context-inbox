@@ -183,9 +183,7 @@ class Server:
         try:
             return self._call(name, args)
         except Exception as e:  # a bad call or a failing read tool answers with an error, never stops the server
-            return text(
-                f"{type(e).__name__}: {e}" if not isinstance(e, (ToolError, store.StoreError)) else str(e), True
-            )
+            return text(f"{type(e).__name__}: {e}" if not isinstance(e, ToolError | store.StoreError) else str(e), True)
 
     def _call(self, name: str, a: dict) -> dict:
         if name == "inbox_list":
