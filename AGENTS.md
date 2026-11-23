@@ -134,7 +134,7 @@ Use one `-e` per destination `secret`. `claude mcp add --help` lists the options
 ### Wire a destination to the server
 
 1. Write a tools file for the destination in the project folder, such as `tools/crm.py`, and set `"tools": "tools/crm.py"` on the destination in config. `connector/check.py` checks that the file exists.
-2. Ask the person to read the file, then run `python3 server/mcp.py <project folder> --print-pins` and register the server with that output. The server runs a tools file only while its bytes match the pin, so a run that edits the file switches that destination off.
+2. Ask the person to read the file, then run `python3 server/mcp.py <project folder> --print-pins` and register the server with that output. The server runs a destination only while its tools file and its settings in `config.json` match the pin, so a run that edits either one switches that destination off.
 3. Test it through the server: call each read tool, then propose one test item on a test record the person names. The person approves it, you call `push_approved`, and both of you check the record.
 
 The file defines, with the Python standard library only:

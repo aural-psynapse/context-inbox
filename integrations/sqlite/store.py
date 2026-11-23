@@ -19,6 +19,7 @@ On proposals the command line never approves or rejects, never changes or
 deletes a decided item, and saves `pushed` only alone, on an approved item.
 """
 
+import hashlib
 import json
 import sqlite3
 import sys
@@ -132,6 +133,12 @@ def write(db: str, collection: str, doc_id: str, change) -> dict | None:
     return None if new is None else {**new, "id": doc_id}
 
 
+def text_rev(doc: dict) -> str:
+    """A fingerprint of everything a reviewer sees on an item. Equal text gives an equal fingerprint, always."""
+    seen = {k: v for k, v in doc.items() if k not in ("id", "decision", "pushed", "rev")}
+    return hashlib.sha256(json.dumps(seen, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
+
+
 def _status(doc) -> str:
     return ((doc or {}).get("decision") or {}).get("status") or "pending"
 
@@ -144,7 +151,8 @@ def agent_change(verb: str, data=None):
     """What a run may do to an item: everything except deciding, and nothing once a person decided.
 
     The one write left on a decided item is `pushed`, alone, on an approved item not written yet.
-    Every other change raises `rev`, so an approval given to older text no longer counts.
+    Every other change sets `rev` to the fingerprint of the new text, so an approval given to other text
+    no longer counts, even after a withdraw and a new item with the same id.
     """
     data = _object(data if data is not None else {})
 
@@ -168,7 +176,7 @@ def agent_change(verb: str, data=None):
         if verb == "update" and not old:
             raise StoreError("there is no such item")
         new = {**old, **data} if verb == "update" else dict(data)
-        new["rev"] = int((old or {}).get("rev", 0)) + 1
+        new["rev"] = text_rev(new)
         return new
 
     return change
@@ -183,7 +191,7 @@ def page_change(decision: dict):
             raise StoreError("there is no such item")
         if old.get("pushed"):
             raise Refused("This item is already written. It can no longer change.")
-        if int(decision.get("rev", 0)) != int(old.get("rev", 0)):
+        if str(decision.get("rev", "")) != str(old.get("rev", "")):
             raise Refused("This item changed while you looked at it. Read the new text, then decide again.")
         return {**old, "decision": decision}
 

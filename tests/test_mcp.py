@@ -1,5 +1,4 @@
 import contextlib
-import hashlib
 import json
 import os
 import subprocess
@@ -10,6 +9,9 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "integrations", "sqlite"))
 import store  # noqa: E402
+
+sys.path.insert(0, os.path.join(REPO, "server"))
+import mcp  # noqa: E402
 
 TOOLS = """
 import json, os
@@ -67,7 +69,7 @@ class McpTest(unittest.TestCase):
         }
         with open(os.path.join(self.dir.name, "config.json"), "w") as f:
             json.dump(config, f)
-        pin = hashlib.sha256(TOOLS.encode()).hexdigest()
+        pin = mcp.pin_of(TOOLS.encode(), config["destinations"][0])
         env = {**os.environ, "TRACKER_KEY": "server-only-key", "CONTEXT_INBOX_PINS": json.dumps({"lin": pin})}
         self.start(env)
 
@@ -96,7 +98,7 @@ class McpTest(unittest.TestCase):
         self.start(env)
 
     def approve(self, doc_id, **extra):
-        rev = store.get_doc(self.db, "proposals", doc_id).get("rev", 0)
+        rev = store.get_doc(self.db, "proposals", doc_id).get("rev", "")
         store.write(self.db, "proposals", doc_id, store.page_change({"status": "approved", "rev": rev, **extra}))
 
     def rpc(self, method, params=None):
@@ -195,6 +197,29 @@ class McpTest(unittest.TestCase):
             store.write(self.db, "proposals", "lin--1", store.page_change({"status": "approved", "rev": seen}))
         self.assertEqual(self.tool("push_approved")[0]["written"], [])
         self.assertFalse(os.path.exists(self.log))
+
+    def test_withdraw_and_propose_again_does_not_reuse_an_approval(self):
+        self.tool("propose", item=self.item())
+        seen = store.get_doc(self.db, "proposals", "lin--1")["rev"]
+        self.tool("withdraw", id="lin--1")
+        self.tool("propose", item=self.item(body="Swapped after a withdraw"))
+        with self.assertRaises(store.Refused):
+            store.write(self.db, "proposals", "lin--1", store.page_change({"status": "approved", "rev": seen}))
+        self.assertFalse(os.path.exists(self.log))
+
+    def test_destination_settings_changed_after_pinning_are_switched_off(self):
+        cfg_path = os.path.join(self.dir.name, "config.json")
+        with open(cfg_path) as f:
+            cfg = json.load(f)
+        cfg["destinations"][0]["log"] = os.path.join(self.dir.name, "elsewhere.jsonl")
+        with open(cfg_path, "w") as f:
+            json.dump(cfg, f)
+        self.restart(self.env)
+        self.tool("propose", item=self.item())
+        self.approve("lin--1")
+        result, _ = self.tool("push_approved")
+        self.assertIn("changed since it was pinned", result["approved_without_writer"][0]["why"])
+        self.assertFalse(os.path.exists(cfg["destinations"][0]["log"]))
 
     def test_tools_file_changed_after_pinning_is_switched_off(self):
         with open(os.path.join(self.dir.name, "tools", "tracker.py"), "a") as f:

@@ -23,10 +23,11 @@ integration name (integrations/<name>/tools.py) or a path to a Python file in
 the project folder. AGENTS.md says what that file holds. Approved items for a
 destination without `tools` stay unwritten here, and push_approved lists them.
 
-The server runs a tools file only when its SHA-256 matches the pin a person
-set in CONTEXT_INBOX_PINS, a JSON object { destination id: sha256 } in the
-server's environment. A run that edits a tools file therefore switches that
-destination off until a person reads the file and pins it again.
+The server runs a destination only when the SHA-256 of its tools file and its
+settings in config.json matches the pin a person set in CONTEXT_INBOX_PINS, a
+JSON object { destination id: sha256 } in the server's environment. A run that
+edits either one therefore switches that destination off until a person reads
+them and pins them again.
   python3 server/mcp.py PROJECT_DIR --print-pins   prints the current hashes
 """
 
@@ -70,13 +71,20 @@ def tools_path(project: Path, value) -> Path:
     return path
 
 
-def load_tools(path: Path, pin) -> types.ModuleType:
-    """Run the file only when its bytes match the pin, and run exactly those bytes."""
+def pin_of(code: bytes, dest: dict) -> str:
+    settings = json.dumps(dest, sort_keys=True, ensure_ascii=False).encode()
+    return hashlib.sha256(code + b"\0" + settings).hexdigest()
+
+
+def load_tools(path: Path, dest: dict, pin) -> types.ModuleType:
+    """Run the file only when its bytes and the destination's settings match the pin, and run exactly those bytes."""
     code = path.read_bytes()
-    digest = hashlib.sha256(code).hexdigest()
+    digest = pin_of(code, dest)
     if pin != digest:
         why = "has no pin" if not pin else "changed since it was pinned"
-        raise ToolError(f"{path} {why}. A person reads it, then pins sha256 {digest} in CONTEXT_INBOX_PINS.")
+        raise ToolError(
+            f"{path} or its destination settings {why}. A person reads both, then pins {digest} in CONTEXT_INBOX_PINS."
+        )
     module = types.ModuleType(f"ci_tools_{digest[:12]}")
     module.__file__ = str(path)
     exec(compile(code, str(path), "exec"), module.__dict__)
@@ -94,7 +102,7 @@ class Server:
             entry = {"config": d, "tools": None, "problem": "no tools file in config"}
             if d.get("tools"):
                 try:
-                    entry["tools"] = load_tools(tools_path(project, d["tools"]), pins.get(d["id"]))
+                    entry["tools"] = load_tools(tools_path(project, d["tools"]), d, pins.get(d["id"]))
                     entry["problem"] = None
                 except Exception as e:  # one broken tools file switches off its destination, not the server
                     entry["problem"] = str(e)
@@ -231,7 +239,7 @@ class Server:
             decision = item.get("decision") or {}
             if item.get("pushed") or decision.get("status") != "approved":
                 continue
-            if int(decision.get("rev", 0)) != int(item.get("rev", 0)):
+            if str(decision.get("rev", "")) != str(item.get("rev", "")) or item.get("rev") != store.text_rev(item):
                 failed.append({"id": item["id"], "error": "the text changed after the approval. Nothing written."})
                 continue
             d = self.dests.get(item.get("dest"))
@@ -300,11 +308,7 @@ def main() -> None:
     project = Path(a.project).resolve()
     if a.print_pins:
         dests = json.loads((project / "config.json").read_text()).get("destinations", [])
-        pins = {
-            d["id"]: hashlib.sha256(tools_path(project, d["tools"]).read_bytes()).hexdigest()
-            for d in dests
-            if d.get("tools")
-        }
+        pins = {d["id"]: pin_of(tools_path(project, d["tools"]).read_bytes(), d) for d in dests if d.get("tools")}
         print(json.dumps(pins))
         return
     serve(Server(project, a.db or str(project / "review.db")))

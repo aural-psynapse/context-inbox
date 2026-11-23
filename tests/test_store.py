@@ -34,7 +34,8 @@ class StoreCliTest(unittest.TestCase):
     def test_set_get_list_delete(self):
         self.assertEqual(cli(self.db, "set", "proposals", "d--1", stdin={"title": "A", "body": "x"})[0], 0)
         self.assertEqual(
-            json.loads(cli(self.db, "get", "proposals", "d--1")[1]), {"title": "A", "body": "x", "rev": 1, "id": "d--1"}
+            json.loads(cli(self.db, "get", "proposals", "d--1")[1]),
+            {"title": "A", "body": "x", "rev": serve.store.text_rev({"title": "A", "body": "x"}), "id": "d--1"},
         )
         self.assertEqual([d["id"] for d in json.loads(cli(self.db, "list", "proposals")[1])], ["d--1"])
         self.assertEqual(cli(self.db, "delete", "proposals", "d--1")[0], 0)
