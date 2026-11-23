@@ -6,7 +6,7 @@ Write with the Attio connector, in the workspace named by the destination's `wor
 - `add_note`: one short dated note per event. Summarise; never paste chat quotes.
 - `create_task`: a follow-up linked to the deal, with an assignee and a due date.
 - `update_deal`: change the stage or fields. Closing a task works the same way.
-- `add_company_note`: a note on the company record named in `existing`, for facts about the company itself, such as a background note or "Never contact again". `pushed.url` is then the company record URL.
+- `add_company_note`: a note on the company record named in `existing`, for facts about the company itself, such as a background note or "Never contact again". When `fields.person` holds a contact, write it as `upsert_person` says in the same push. `pushed.url` is then the company record URL.
 - `create_deal`: a new deal linked to the company in `existing`, with the stage and fields in `fields.set`. Search the company's deals for the marker first. `pushed.url` is the new deal's URL.
 - `upsert_person`: the contact in `fields.set` (name, job title, email), matched on email and linked to the company in `existing`.
 - The marker goes at the end of note bodies and task text. Search notes and tasks for it.
