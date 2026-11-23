@@ -37,12 +37,15 @@ from urllib.parse import unquote, urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import store  # noqa: E402
 
-PAGE = Path(__file__).resolve().parent.parent.parent / "ui" / "review.html"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "ui"))
+import named  # noqa: E402
+
 MAX_BODY = 1_000_000
 
 
 class Handler(BaseHTTPRequestHandler):
     db = ""
+    name = named.DEFAULT
     on_decide: list = []
 
     def act(self, doc_id: str) -> None:
@@ -73,7 +76,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path in ("/", "/index.html"):
-            self.send(200, PAGE.read_bytes(), "text/html")
+            self.send(200, named.page(self.name).encode(), "text/html")
         elif path == "/api/proposals":
             self.send_json(200, store.list_docs(self.db, "proposals"))
         elif path == "/api/runs":
@@ -140,8 +143,15 @@ def run_every(minutes: float, command: str, stop: threading.Event) -> threading.
     return thread
 
 
-def make_server(db: str, host: str = "127.0.0.1", port: int = 47821, on_decide: str = "") -> ThreadingHTTPServer:
-    handler = type("ReviewHandler", (Handler,), {"db": db, "on_decide": shlex.split(on_decide)})
+def make_server(
+    db: str, host: str = "127.0.0.1", port: int = 47821, on_decide: str = "", config=None
+) -> ThreadingHTTPServer:
+    # The page shows the project's "name" from config.json, the one beside the file unless --config names another.
+    if config is None:
+        beside = Path(db).resolve().parent / "config.json"
+        config = beside if beside.is_file() else None
+    attrs = {"db": db, "on_decide": shlex.split(on_decide), "name": named.name_of(config)}
+    handler = type("ReviewHandler", (Handler,), attrs)
     return ThreadingHTTPServer((host, port), handler)
 
 
@@ -150,13 +160,14 @@ def main() -> None:
     ap.add_argument("db")
     ap.add_argument("--port", type=int, default=47821)
     ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--config", help="the project's config.json, for its name. Default: config.json beside DB")
     ap.add_argument("--on-decide", default="", help="command started with the item id after each decision")
     ap.add_argument("--every", type=float, help="minutes between runs of --run")
     ap.add_argument("--run", default="", help="command that reads new messages, such as runner/read-now.sh")
     a = ap.parse_args()
     if bool(a.every) != bool(a.run):
         ap.error("--every and --run go together")
-    server = make_server(a.db, a.host, a.port, a.on_decide)
+    server = make_server(a.db, a.host, a.port, a.on_decide, a.config)
     stop = threading.Event()
     if a.run:
         run_every(a.every, a.run, stop)

@@ -4,12 +4,12 @@ The review page is published as a page on claude.ai, which Claude calls an artif
 
 ## Set up
 
-1. Publish [`ui/review.html`](../../ui/review.html) as a claude.ai artifact with these capabilities:
+1. Make the page with the project's name: `python3 ui/named.py <project folder>/config.json /tmp/review.html`. Publish that file as a claude.ai artifact with these capabilities:
    ```json
    { "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }
    ```
 2. In `config.json`, set `"review_store": "claude-artifact"` and put the artifact's URL in `review_page`.
-3. After a change to `ui/review.html`, republish it to the same artifact URL.
+3. After a change to `ui/review.html` or to `name` in config, make the page again the same way and republish it to the same artifact URL.
 
 ## Read and write in a run
 

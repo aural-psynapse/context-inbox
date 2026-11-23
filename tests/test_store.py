@@ -94,6 +94,22 @@ class ServeTest(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, e.read()
 
+    def test_page_shows_the_project_name(self):
+        with open(os.path.join(self.dir.name, "config.json"), "w") as f:
+            json.dump({"name": "Acme <outreach>"}, f)
+        server = serve.make_server(self.db, port=0)
+        server.RequestHandlerClass.log_message = lambda *a: None
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{server.server_address[1]}/") as r:
+                body = r.read().decode()
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertIn("<title>Acme &lt;outreach&gt;</title>", body)
+        self.assertIn('<div class="brand">Acme &lt;outreach&gt;</div>', body)
+        self.assertNotIn("Context Inbox", body.split("<script>")[0])
+
     def test_page_is_the_review_page(self):
         status, body = self.call("/")
         self.assertEqual(status, 200)
