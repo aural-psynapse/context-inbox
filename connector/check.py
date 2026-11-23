@@ -127,6 +127,14 @@ def check(project: Path) -> dict:
             continue
         if not isinstance(d.get("type"), str) or not d.get("type"):
             errors.append(f"{label}: type missing")
+        days = d.get("reminder_days")
+        if days is not None and not (
+            isinstance(days, list)
+            and days
+            and all(isinstance(n, int) and not isinstance(n, bool) and n > 0 for n in days)
+            and days == sorted(set(days))
+        ):
+            errors.append(f"{label}: reminder_days must list whole days in rising order, such as [3, 7, 14]")
         guide = resolve(project, d.get("guide", d.get("type")), "guide", errors, label)
         dests[did] = {**d, "guide_path": str(guide) if guide else None}
     out["destinations"] = list(dests.values())

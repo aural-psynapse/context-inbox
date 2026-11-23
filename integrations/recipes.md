@@ -16,3 +16,14 @@ The Slack token needs `files:read` so the reader can read files shared in messag
 | Slack to Linear | `{ "id": "linear-acme", "type": "linear", "guide": "linear", "team": "ACM" }` | Bug reports and feature requests go to linear-acme, one issue each, in project "Customer requests". | Linear connector |
 | Slack to Attio | `{ "id": "attio-acme", "type": "attio", "guide": "attio", "workspace": "acme" }` | Leads, deals and follow-ups go to attio-acme, one deal per company. | Attio connector. An Attio API token in `secret` to attach files. `im:history` on the Slack token for a private DM, marked `"private": true`. |
 | Slack to GitHub | `{ "id": "docs-acme", "type": "github", "guide": "github", "repo": "acme/docs", "branch": "main" }` | Client decisions go to docs-acme as a new file in `decisions/`, named by date and topic. | Push access to the repo, and the repo cloned in the run |
+
+## Reminders after a write
+
+Add `reminder_days` to a destination, and each item written there gets reminder drafts on those days after it was written. Each draft waits for approval like any other item. The project's `RULES.md` says what the reminders say and what stops them.
+
+```json
+"destinations": [ { "id": "gmail-acme", "type": "gmail", "guide": "gmail", "send_as": "sales@acme.com",
+  "secret": "GMAIL_ACME_SEND", "reminder_days": [3, 7, 14] } ]
+```
+
+Line in `RULES.md`: Reminders to a shop say one new thing each, are sent as replies to the first email, and stop when the shop replies or books a call.

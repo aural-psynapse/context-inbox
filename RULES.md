@@ -39,11 +39,13 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
   ],
   "unsure": false,
   "question": "",
+  "reminder_of": "",
   "run": "YYYY-MM-DD",
   "order": 0
 }
 ```
 
 - `id` stays the same when the same record comes up again, so a re-read updates the item instead of adding a second one. Once an item has a decision or `pushed`, it never changes: news about that record goes into a new item, as AGENTS.md step 3 says.
+- `reminder_of` holds the id of the written item a reminder follows up, and is empty on every other item. AGENTS.md step 3b says when reminders are made.
 - `existing` is `null` for new records. `fields` holds only what the action needs.
 - `order` continues after the highest `order` already on the page.
