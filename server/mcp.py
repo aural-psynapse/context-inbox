@@ -222,7 +222,7 @@ class Server:
             raise ToolError("item must be an object with an id, in the shape RULES.md gives.")
         if not isinstance(item.get("dest"), str) or item["dest"] not in self.dests:
             raise ToolError(f"dest must be one of: {', '.join(self.dests)}")
-        doc = {k: v for k, v in item.items() if k not in ("id", "decision", "pushed", "rev")}
+        doc = {k: v for k, v in item.items() if k not in ("id", "decision", "pushed", "rev", "publishing")}
 
         def change(old):
             if old and not store.decided(old) and (old.get("decision") or {}).get("comment"):

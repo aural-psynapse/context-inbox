@@ -12,8 +12,11 @@ from pathlib import Path
 ROOTS = {Path(tempfile.gettempdir()).resolve(), Path("/tmp").resolve()}
 
 
-def scratch_path(value: str) -> Path:
+def scratch_path(value: str, also=()) -> Path:
+    """The path, when it sits in a temporary folder or in one of `also`. Otherwise stop the script."""
     path = Path(value).resolve()
-    if not any(root == path or root in path.parents for root in ROOTS):
-        sys.exit(f"{value}: write the cursors file and output folder inside a temporary folder, such as /tmp")
+    roots = ROOTS | {Path(a).resolve() for a in also}
+    if not any(root == path or root in path.parents for root in roots):
+        where = "a temporary folder, such as /tmp" + (" or the project folder" if also else "")
+        sys.exit(f"{value}: use a file inside {where}")
     return path

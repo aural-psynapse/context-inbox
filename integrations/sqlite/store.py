@@ -166,6 +166,8 @@ def agent_change(verb: str, data=None):
             return None
         if ((data.get("decision") or {}).get("status") or "pending") != "pending":
             raise Refused("only a person on the review page approves or rejects an item")
+        if "publishing" in data:
+            raise Refused("only the destination sets publishing, after a person approved the item")
         if "pushed" in data:
             if verb != "update" or set(data) != {"pushed"}:
                 raise Refused("save pushed alone, with update, after the write went through")

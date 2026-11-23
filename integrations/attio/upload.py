@@ -21,6 +21,9 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scratch import scratch_path  # noqa: E402
+
 API = "https://api.attio.com/v2/files/upload"
 
 
@@ -33,7 +36,8 @@ def main() -> None:
     if not dest:
         sys.exit(f"no destination with id {dest_id!r} in {config}")
     token = os.environ.get(dest.get("secret", ""), "")
-    path = Path(file)
+    # Only a downloaded file or one in the project folder goes out, never a key file elsewhere.
+    path = scratch_path(file, also=[Path(config).resolve().parent])
     mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     b = uuid.uuid4().hex
     parts = []

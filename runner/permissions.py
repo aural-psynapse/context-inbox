@@ -12,6 +12,7 @@ CONTEXT_INBOX_MCP_CONFIG, where the destination keys and pins sit.
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -42,11 +43,23 @@ def main() -> None:
             continue
         allow.append(f"Bash({' '.join(run)}:*)")
         reader = Path(run[-1])
-        programs.append(reader)
+        # Python runs files beside the script first, such as a planted json.py, so lock the reader's folder.
+        programs.append(reader.parent / "**" if project in reader.parents else reader)
         download = reader.parent / "download.py"
         if download.is_file() and HERE in download.parents:
             allow.append(f"Bash(python3 {download}:*)")
             programs.append(download)
+    config = project / "config.json"
+    for dest in checked["destinations"]:
+        guide = Path(dest.get("guide_path") or "")
+        if guide.parent.parent != HERE / "integrations":
+            continue
+        for script in sorted(guide.parent.glob("*.py")):
+            if script.name in ("reader.py", "download.py", "tools.py"):
+                continue
+            # A script whose first argument is CONFIG may run only with this project's config.
+            pinned = re.search(r"Usage:\s*\n\s*python3 \S+ CONFIG\b", script.read_text())
+            allow.append(f"Bash(python3 {script} {config}:*)" if pinned else f"Bash(python3 {script}:*)")
     # No git: `git log --output=<file>` and similar would let the run overwrite any program above.
     allow += ["Read", "Write", "Edit", "Glob", "Grep", "ToolSearch", "ArtifactData", "mcp__context-inbox"]
     allow += os.environ.get("CONTEXT_INBOX_TOOLS", "").split()

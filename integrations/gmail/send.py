@@ -47,6 +47,11 @@ from email.message import EmailMessage
 from email.utils import formatdate
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scratch import scratch_path  # noqa: E402
+
+PROJECT = Path(".")  # set in main() from CONFIG
+
 HERE = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("gmail_reader", HERE / "reader.py")
 reader = importlib.util.module_from_spec(_spec)
@@ -74,7 +79,7 @@ def build(email: dict, send_as: str) -> EmailMessage:
         msg.add_alternative(email["html"], subtype="html")
         html_part = msg.get_payload()[-1]
         for picture in email.get("pictures", []):
-            path = Path(picture["path"])
+            path = scratch_path(picture["path"], also=[PROJECT])
             kind = mimetypes.guess_type(path.name)[0] or "image/jpeg"
             maintype, subtype = kind.split("/", 1)
             html_part.add_related(
@@ -139,6 +144,8 @@ def main() -> None:
     if len(sys.argv) != 4:
         sys.exit(__doc__)
     config, dest_id, email_path = sys.argv[1:]
+    global PROJECT
+    PROJECT = Path(config).resolve().parent
     cfg = json.loads(Path(config).read_text())
     dest = next((d for d in cfg.get("destinations", []) if d.get("id") == dest_id), None)
     if not dest:
@@ -146,7 +153,7 @@ def main() -> None:
     if not dest.get("send_as"):
         sys.exit(f"destination {dest_id!r} needs a send_as address")
     token = reader.access_token(os.environ.get(dest.get("secret", ""), ""))
-    email = json.loads(Path(email_path).read_text())
+    email = json.loads(scratch_path(email_path, also=[PROJECT]).read_text())
     get = reader.make_get(token)
     limit = dest.get("daily_limit")
     if limit and sent_today(get, dest["send_as"], time.time()) >= int(limit):

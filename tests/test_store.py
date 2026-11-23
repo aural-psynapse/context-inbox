@@ -63,6 +63,11 @@ class StoreCliTest(unittest.TestCase):
         self.assertNotEqual(cli(self.db, "update", "proposals", "d--1", stdin={"pushed": {"url": "u"}})[0], 0)
         self.assertNotIn("pushed", serve.store.get_doc(self.db, "proposals", "d--1"))
 
+    def test_command_line_never_sets_publishing(self):
+        self.assertNotEqual(
+            cli(self.db, "set", "proposals", "d--1", stdin={"title": "A", "publishing": {"version": "1"}})[0], 0
+        )
+
     def test_command_line_never_decides(self):
         self.assertNotEqual(cli(self.db, "set", "proposals", "d--1", stdin={"decision": {"status": "approved"}})[0], 0)
         cli(self.db, "set", "proposals", "d--1", stdin={"title": "A"})
