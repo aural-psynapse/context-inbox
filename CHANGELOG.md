@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.1](https://github.com/aural-psynapse/context-inbox/compare/v1.5.0...v1.5.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* a run writes only in the project folder and temporary folders, and the server starts in Python's isolated mode ([b194c54](https://github.com/aural-psynapse/context-inbox/commit/b194c542544c73d2cd0f9c00db93b4348fc8a15c))
+* the review page opens run-written links only as http or https addresses ([5244998](https://github.com/aural-psynapse/context-inbox/commit/524499813c7e2980f6850583c36d7ac4ce43aa2c))
+
 ## [1.5.0](https://github.com/aural-psynapse/context-inbox/compare/v1.4.1...v1.5.0) (2026-11-23)
 
 
