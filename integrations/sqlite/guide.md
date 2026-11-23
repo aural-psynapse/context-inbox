@@ -14,6 +14,8 @@ One file holds the items, the saved cursors and the run log. [`store.py`](store.
 
 ## Read and write in a run
 
+With the MCP server ([`server/mcp.py`](../../server/mcp.py)), use its tools instead of the commands below. The commands never approve or reject, and refuse to change a decided item, except to save `pushed` on an approved one.
+
 Every command starts with `python3 integrations/sqlite/store.py <project folder>/review.db`.
 
 | To | Command | Input |

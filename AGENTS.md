@@ -9,6 +9,7 @@ This repo holds:
 | Instructions for you | this file, [`RULES.md`](RULES.md) |
 | Connector: finds a projects repo and checks each config | [`connector/check.py`](connector/check.py) |
 | Integrations: readers, guides, review stores, and recipes that pair them | [`integrations/`](integrations/) |
+| MCP server: the agent's only door to the items and the destinations | [`server/mcp.py`](server/mcp.py) |
 | Review page with run log | [`ui/review.html`](ui/review.html) |
 | Runner: prompt and local run script | [`runner/`](runner/) |
 | Skills and a hook for Claude Code | [`.claude/`](.claude/) |
@@ -107,6 +108,19 @@ To keep the items in a database a site already has, write a guide in the project
 | `GET api/me` | `{ "id": "", "name": "", "can_write": true }` for the signed-in person. Answer `{}` when there is no login. |
 
 [`integrations/sqlite/serve.py`](integrations/sqlite/serve.py) is a working copy of those addresses.
+
+## MCP server
+
+[`server/mcp.py`](server/mcp.py) gives the agent one set of tools for the `sqlite` review store and every destination. Start it as an MCP server over stdio: `python3 server/mcp.py <project folder>`.
+
+- **Reads** go straight through: `inbox_list`, `inbox_get`, and each destination's read tools, named `<destination id>__<tool>`.
+- **Changes** wait for a person: `propose` saves an item, `withdraw` deletes an undecided one. No tool approves or rejects.
+- **Writes** happen only in `push_approved`. The server writes each approved, unwritten item itself and saves `pushed`.
+- **Keys** live in the server's environment, in the env var each destination's `secret` names. Give the agent session no destination key and no write connector for that tool.
+
+A destination gets a writer when its integration folder holds `tools.py`, such as [`integrations/linear/tools.py`](integrations/linear/tools.py). `tools.py` sets `READ_TOOLS`, `read(tool, args, destination)` and `write(item, destination)`, which returns the record's URL and searches for the marker before it writes. An approved item for a destination with no `tools.py` stays unwritten, and `push_approved` lists it. The agent then writes it by the guide.
+
+With the server, the daily run calls `push_approved` for step 1, `propose` and `withdraw` for step 3, `save_cursors` for step 4 and `log_run` for step 5.
 
 ## Review page collections
 

@@ -107,6 +107,21 @@ def delete_doc(db: str, collection: str, doc_id: str) -> None:
         con.execute("DELETE FROM docs WHERE collection = ? AND id = ?", (collection, doc_id))
 
 
+def _agent_may_write(db: str, verb: str, doc_id: str, data) -> None:
+    """The command line is what a run uses, so it never approves or rejects. Only the review page decides."""
+    status = ((data or {}).get("decision") or {}).get("status") if isinstance(data, dict) else None
+    if status not in (None, "pending"):
+        raise StoreError("only a person on the review page approves or rejects an item")
+    old = get_doc(db, "proposals", doc_id)
+    if not old or not (old.get("pushed") or (old.get("decision") or {}).get("status") in ("approved", "rejected")):
+        return
+    # A decided item is frozen. The one write left is saving `pushed` on an approved, unwritten item.
+    approved = (old.get("decision") or {}).get("status") == "approved"
+    if verb == "update" and set(data) == {"pushed"} and approved and not old.get("pushed"):
+        return
+    raise StoreError(f"item {doc_id!r} is decided or written. It can no longer change.")
+
+
 def main() -> None:
     args = sys.argv[1:]
     if len(args) < 3 or args[1] not in ("list", "get", "set", "update", "delete"):
@@ -120,9 +135,13 @@ def main() -> None:
         elif verb == "get":
             print(json.dumps(get_doc(db, collection, rest[0]), indent=2, ensure_ascii=False))
         elif verb == "delete":
+            if collection == "proposals":
+                _agent_may_write(db, verb, rest[0], {})
             delete_doc(db, collection, rest[0])
         else:
             data = json.load(sys.stdin)
+            if collection == "proposals":
+                _agent_may_write(db, verb, rest[0], data)
             if verb == "set":
                 set_doc(db, collection, rest[0], data)
             else:

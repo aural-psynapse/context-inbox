@@ -8,6 +8,7 @@ Each project keeps a folder in a separate private repo with `config.json` and `R
 
 - [AGENTS.md](AGENTS.md): setup, reader and guide formats, and the daily run.
 - [RULES.md](RULES.md): what a proposal is, how to write it, and its JSON shape.
+- [server/mcp.py](server/mcp.py): MCP server. The agent reads and proposes through it. Only approved items get written, by the server, with keys the agent never holds.
 - [connector/check.py](connector/check.py): checks a projects repo and prints each reader command and guide path.
 
 ## Integrations

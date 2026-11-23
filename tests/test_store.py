@@ -41,7 +41,7 @@ class StoreCliTest(unittest.TestCase):
         self.assertEqual(json.loads(cli(self.db, "get", "proposals", "d--1")[1]), None)
 
     def test_update_keeps_other_keys(self):
-        cli(self.db, "set", "proposals", "d--1", stdin={"title": "A", "decision": {"status": "approved"}})
+        serve.store.set_doc(self.db, "proposals", "d--1", {"title": "A", "decision": {"status": "approved"}})
         self.assertEqual(cli(self.db, "update", "proposals", "d--1", stdin={"pushed": {"url": "u"}})[0], 0)
         doc = json.loads(cli(self.db, "get", "proposals", "d--1")[1])
         self.assertEqual(doc["decision"], {"status": "approved"})
@@ -51,6 +51,20 @@ class StoreCliTest(unittest.TestCase):
         cli(self.db, "set", "state", "slack", stdin={"cursors": {"C1": "1"}, "extra": 1})
         cli(self.db, "set", "state", "slack", stdin={"cursors": {"C1": "2"}})
         self.assertEqual(json.loads(cli(self.db, "get", "state", "slack")[1]), {"cursors": {"C1": "2"}, "id": "slack"})
+
+    def test_command_line_never_decides(self):
+        self.assertNotEqual(cli(self.db, "set", "proposals", "d--1", stdin={"decision": {"status": "approved"}})[0], 0)
+        cli(self.db, "set", "proposals", "d--1", stdin={"title": "A"})
+        self.assertNotEqual(
+            cli(self.db, "update", "proposals", "d--1", stdin={"decision": {"status": "rejected"}})[0], 0
+        )
+        ok = {"title": "A", "decision": {"status": "pending", "comment": "answer"}}
+        self.assertEqual(cli(self.db, "set", "proposals", "d--1", stdin=ok)[0], 0)
+        serve.store.update_doc(self.db, "proposals", "d--1", {"decision": {"status": "approved"}})
+        self.assertNotEqual(cli(self.db, "set", "proposals", "d--1", stdin={"title": "B"})[0], 0)
+        self.assertNotEqual(cli(self.db, "delete", "proposals", "d--1")[0], 0)
+        self.assertEqual(cli(self.db, "update", "proposals", "d--1", stdin={"pushed": {"url": "u"}})[0], 0)
+        self.assertNotEqual(cli(self.db, "update", "proposals", "d--1", stdin={"pushed": {"url": "v"}})[0], 0)
 
     def test_errors(self):
         bad = {
