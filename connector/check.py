@@ -9,9 +9,9 @@ PROJECTS_DIR  folder holding one subfolder per project.
 PROJECT       check only this project folder name.
 PROJECT_DIR   a single project folder, such as a repo that holds one project.
 
-A project folder holds config.json and RULES.md. In config, `reader` and
-`guide` take an integration name (a folder in integrations/, such as "slack")
-or a path inside the project folder. A value is a path when it contains "/"
+A project folder holds config.json and RULES.md. In config, `reader`, `guide`
+and `review_store` take an integration name (a folder in integrations/, such
+as "slack") or a path inside the project folder. A value is a path when it contains "/"
 or ends in a file extension, such as "readers/forum.py" or "./notion.md".
 
 Prints one JSON object per project with resolved paths. Exits 1 when any
@@ -28,7 +28,9 @@ REPO = Path(__file__).resolve().parent.parent
 SAFE_ID = re.compile(r"^[A-Za-z0-9_.~:@+-]+$")
 SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
-TOP_KEYS = {"project", "review_page", "routine", "sources", "destinations"}
+URL = re.compile(r"^https?://[^\s<>]+$")
+PLACEHOLDER = re.compile(r"replace|example|00000000")
+TOP_KEYS = {"project", "review_page", "review_store", "routine", "sources", "destinations"}
 TYPOS = {
     "feed": "feeds",
     "channel": "channels",
@@ -90,9 +92,18 @@ def check(project: Path) -> dict:
     if not (project / "RULES.md").is_file():
         errors.append("RULES.md missing")
     page = cfg.get("review_page")
-    if not isinstance(page, str) or not PAGE.match(page) or re.search(r"replace|example|00000000", page):
-        errors.append("review_page must be a published claude.ai artifact URL, not a placeholder")
+    real = isinstance(page, str) and not PLACEHOLDER.search(page)
+    # Configs written before review_store existed all kept their items on claude.ai.
+    on_claude = isinstance(page, str) and page.startswith("https://claude.ai/")
+    store = cfg.get("review_store", "claude-artifact" if on_claude else "sqlite")
+    if store == "claude-artifact":
+        if not real or not PAGE.match(page):
+            errors.append("review_page must be a published claude.ai artifact URL, not a placeholder")
+    elif not real or not URL.match(page):
+        errors.append("review_page must be the link people open to review, such as http://127.0.0.1:47821")
     out["review_page"] = page
+    store_guide = resolve(project, store, "guide", errors, "review_store")
+    out["review_store"] = {"name": store, "guide_path": str(store_guide) if store_guide else None}
     routine = cfg.get("routine")
     if routine is not None and (not isinstance(routine, str) or not re.match(r"^trig_[A-Za-z0-9]+$", routine)):
         errors.append("routine must be a scheduled task id like trig_01ABC")

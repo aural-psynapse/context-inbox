@@ -1,16 +1,18 @@
 # Runner
 
-- `run.sh PROJECTS_DIR PROJECT` (or `run.sh PROJECT_DIR`) checks the project's config, then opens an interactive Claude Code session that runs the daily run once. A session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
+- `run.sh PROJECTS_DIR PROJECT` (or `run.sh PROJECT_DIR`) checks the project's config, then opens an interactive Claude Code session that runs the daily run once. With the `claude-artifact` review store, a session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
 - `prompt.txt` is the prompt for a scheduled run.
 
 ## Run on this machine
 
-- Sign Claude Code in with a claude.ai account. The review page tools need it.
+- With the `claude-artifact` review store, sign Claude Code in with a claude.ai account. The review page tools need it.
 - The session may run, without asking, only the config check, the readers, and `git log`, `add`, `commit`, `pull`, `push` and `status`. Any other shell command asks you first. Messages come from outside people, so read what a command does before you allow it.
 - Set `CONTEXT_INBOX_TOOLS` to the connector servers your guides use, such as `mcp__claude_ai_Linear mcp__claude_ai_Attio`, so the run may call them without asking.
 - Set each source token in the env var named by its `secret`.
 
 ## Run on a schedule
+
+A scheduled run happens in the cloud, so it needs a review store it can reach from there. The `sqlite` store lives in a file on one machine: run that one with `run.sh`.
 
 Copy `prompt.txt`, replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Give it:
 

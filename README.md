@@ -107,18 +107,18 @@ Items wait here until someone decides. You answer the agent's questions, follow 
 
 ## Manual setup
 
-You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, a claude.ai account for the review page, and Python 3.10+.
+You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, and Python 3.10+.
 
 1. **Make a project folder** in a private repo of its own, starting from [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then check them:
    ```sh
    python3 connector/check.py <projects repo> <project>
    ```
    A repo that holds a single project can keep `config.json` at its top level. Then pass the folder alone: `connector/check.py <project folder>`. The runner scripts accept the same.
-2. **Publish [`ui/review.html`](ui/review.html).** Ask Claude Code to publish it as a claude.ai artifact with these capabilities, and put its URL in `review_page`:
-   ```json
-   { "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }
+2. **Start the review page.** The default keeps the items in one SQLite file beside your config:
+   ```sh
+   python3 integrations/sqlite/serve.py <project folder>/review.db   # then open http://127.0.0.1:47821
    ```
-   Share it with your approvers as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
+   It has no login and answers on your machine only. To review on claude.ai with your team signed in, follow [`integrations/claude-artifact/guide.md`](integrations/claude-artifact/guide.md). To keep the items in a database you already have, see "Review store" in [`AGENTS.md`](AGENTS.md).
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
 4. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Start extra runs with:
    ```sh
@@ -131,7 +131,8 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 
 | Key | Meaning |
 |---|---|
-| `review_page` | URL of the published review page. |
+| `review_page` | The link people open to review. |
+| `review_store` | Where the items live: `sqlite`, `claude-artifact`, or a path to your own guide inside the project folder. |
 | `routine` | Optional. Id of the scheduled task, such as `trig_01ABC`, so `runner/fire.sh` can start it. |
 | `sources[].id` | Name for the source. Cursors are stored under it. |
 | `sources[].type` | Name of the tool, such as `slack`. |
@@ -155,7 +156,7 @@ Other keys on a destination, such as `team` or `repo`, are read by its guide. Ot
 AGENTS.md                instructions for the agent: setup and daily run
 RULES.md                 what a proposal is and its JSON shape
 connector/check.py       finds and checks project configs
-integrations/            readers, guides, recipes
+integrations/            readers, guides, review stores, recipes
 ui/review.html           review page and run log
 runner/                  daily prompt, fire.sh, run.sh
 .claude/                 skills and the write check

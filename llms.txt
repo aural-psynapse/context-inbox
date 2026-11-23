@@ -1,6 +1,6 @@
 # context-inbox
 
-> A framework for turning messages from any source into cited changes in any destination. An agent drafts each change, a person approves it on a claude.ai review page, and the next run writes only approved changes.
+> A framework for turning messages from any source into cited changes in any destination. An agent drafts each change, a person approves it on a review page, and the next run writes only approved changes.
 
 Each project keeps a folder in a separate private repo with `config.json` and `RULES.md`. The config maps channels to destinations and names a reader per source and a guide per destination.
 
@@ -16,6 +16,8 @@ Each project keeps a folder in a separate private repo with `config.json` and `R
 - [integrations/linear/guide.md](integrations/linear/guide.md): Linear issues and comments.
 - [integrations/attio/guide.md](integrations/attio/guide.md): Attio deal notes and tasks.
 - [integrations/github/guide.md](integrations/github/guide.md): one commit per item to a repo.
+- [integrations/sqlite/guide.md](integrations/sqlite/guide.md): review store in one SQLite file, with a small server for the page. The default.
+- [integrations/claude-artifact/guide.md](integrations/claude-artifact/guide.md): review store and sign-in on claude.ai.
 - [integrations/recipes.md](integrations/recipes.md): Slack to Linear, Slack to Attio, Slack to GitHub.
 
 ## Run

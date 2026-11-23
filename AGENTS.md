@@ -8,7 +8,7 @@ This repo holds:
 |---|---|
 | Instructions for you | this file, [`RULES.md`](RULES.md) |
 | Connector: finds a projects repo and checks each config | [`connector/check.py`](connector/check.py) |
-| Integrations: readers, guides, and recipes that pair them | [`integrations/`](integrations/) |
+| Integrations: readers, guides, review stores, and recipes that pair them | [`integrations/`](integrations/) |
 | Review page with run log | [`ui/review.html`](ui/review.html) |
 | Runner: prompt and local run script | [`runner/`](runner/) |
 | Skills and a hook for Claude Code | [`.claude/`](.claude/) |
@@ -27,7 +27,7 @@ Ask the person only what you cannot look up. Done when the first run's items sho
 4. **Wire each destination** with a guide (see Destinations below). Use one from `integrations/` by name when it fits. Confirm you can read the destination with your tools.
 5. **Store tokens outside git.** Put each source token in the env var named by `secret`. In a cloud environment, store it as a network secret for the API's host and leave the env var unset.
 6. **Check the config.** Run `python3 connector/check.py <projects repo> <project>` until it exits 0. A repo that holds a single project keeps `config.json` at its top level and passes the folder alone, here and in the runner scripts.
-7. **Publish the review page.** Publish [`ui/review.html`](ui/review.html) as a claude.ai artifact with capabilities `{ "user": { "scopes": ["profile"] }, "db": { "rules": [ { "path": "state", "read": "owner", "write": "owner" } ] } }`. Put its URL in `review_page`. Ask the person to share it with everyone who approves, as Contributor when the Share menu offers it, else as Editor. An Editor can also republish the page and read the saved cursors.
+7. **Set up the review store.** Pick one (see Review store below), set `review_store`, and follow its guide's "Set up". `sqlite` needs nothing but this repo. Put the link people open in `review_page`, and tell the person who can open it.
 8. **Run once.** Do the daily run below. The first run reads the whole history.
 9. **Schedule it.** Offer a daily scheduled run with the prompt in [`runner/prompt.txt`](runner/prompt.txt), and put its id in `routine` in `config.json` so `runner/fire.sh` can start it at any time. [`runner/README.md`](runner/README.md) has the steps. It needs this repo, the projects repo, every repo a guide writes to, and every connector a guide names.
 
@@ -79,14 +79,43 @@ A guide adds only what is specific to the tool:
 4. Which URL counts as the record's URL.
 5. **A complete record**: the fields a record should hold, how to read the live field list, the public doc pages that list fields, and a `Docs checked: YYYY-MM-DD` line.
 
+## Review store
+
+The review store holds the three collections below and serves [`ui/review.html`](ui/review.html). Config sets `review_store`: an integration name such as `sqlite` (reads `integrations/sqlite/guide.md`), or a path to a Markdown file in the project folder. Left out, it is `claude-artifact` when `review_page` is a claude.ai link and `sqlite` otherwise.
+
+| Store | The items live in | Who can open the page | A run reaches it from |
+|---|---|---|---|
+| `sqlite` | one file in the project folder | everyone who can reach the address | the machine that holds the file |
+| `claude-artifact` | storage claude.ai gives the page | claude.ai accounts the page is shared with | any signed-in Claude Code session, cloud runs included |
+
+Login is a choice the store's guide makes. A store with no login lets everyone who can open the page decide, which fits a page that already sits behind a login.
+
+A guide says:
+
+1. **Set up**: what to make or publish, and which link goes in `review_page`.
+2. **Read and write in a run**: how you list, read, set, update and delete a doc in each collection.
+3. **Who can open it**: how people sign in, or that there is no login, and what `decision.by` holds.
+4. **Where a run can reach it.**
+
+To keep the items in a database a site already has, write a guide in the project folder. Add one table to that database, with a collection name, a doc id and the doc as JSON per row. Have the site serve `ui/review.html` unchanged, with these addresses beside it:
+
+| Address | Answers |
+|---|---|
+| `GET api/proposals` | a JSON array of every item, each with its `id` |
+| `GET api/runs` | the 30 newest run docs, newest first, each with its `id` |
+| `PATCH api/proposals/<id>` with `{ "decision": {} }` | replaces `decision` on that item. Refuses an item that carries `pushed`. |
+| `GET api/me` | `{ "id": "", "name": "", "can_write": true }` for the signed-in person. Answer `{}` when there is no login. |
+
+[`integrations/sqlite/serve.py`](integrations/sqlite/serve.py) is a working copy of those addresses.
+
 ## Review page collections
 
-You read and write the review page through the ArtifactData tool.
+You read and write the collections the way the review store's guide says.
 
 | Collection | Holds | Who reads |
 |---|---|---|
 | `proposals` | items waiting for, or past, review | every reviewer |
-| `state` | one doc per source id: `{ cursors: { channel_id: cursor } }` | page owner only |
+| `state` | one doc per source id: `{ cursors: { channel_id: cursor } }` | the run, and no reviewer |
 | `runs` | one doc per run, id = UTC start time | every reviewer |
 
 An item is **decided** when `decision.status` is `approved` or `rejected`, or when it carries `pushed`. A reviewer can also save a comment without deciding: `decision.status` stays `pending` and `decision.comment` holds the text. On an item marked `unsure`, that comment is the reviewer's answer. The review page shows pushed items as written, with their link, and locks them.
@@ -95,7 +124,7 @@ An item is **decided** when `decision.status` is `approved` or `rejected`, or wh
 
 Run the steps in order. Each ends on its done line.
 
-0. **Check.** Run `python3 connector/check.py <projects repo> <project>`. Exit 1: write a `runs` doc with its errors, write nothing else, and stop. Otherwise keep its output: it gives each reader command and each guide path. Then read the project's `RULES.md`.
+0. **Check.** Run `python3 connector/check.py <projects repo> <project>`. Exit 1: write a `runs` doc with its errors, write nothing else, and stop. Otherwise keep its output: it gives each reader command, each guide path and the review store's guide at `review_store.guide_path`. Then read that guide and the project's `RULES.md`.
    For each guide whose `Docs checked` date is more than 7 days old, read the doc pages it links. When a page lists a field the guide's "A complete record" list lacks, add `Guide out of date: <guide>, <field>, <page>` to the run's `errors`, so a person updates the guide and its date.
 
 1. **Push approved items.** Read `proposals`. For each item with `decision.status == "approved"` and no `pushed`, one at a time:
@@ -123,8 +152,8 @@ Nothing reaches a destination without `decision.status == "approved"`. Rejected 
 
 This repo stays generic. It holds no real project's names, IDs, people or links.
 
-- `projects-example/` passes `connector/check.py` except for its fake `review_page`. Readers are Python 3.10+, standard library only.
-- An integration is a folder in `integrations/` holding `reader.py`, `guide.md`, or both, plus any small script its guide or reader calls, such as `download.py` or `upload.py`. A recipe shows one source and one destination wired together.
+- `projects-example/` passes `connector/check.py`. Readers and review stores are Python 3.10+, standard library only.
+- An integration is a folder in `integrations/` holding `reader.py`, `guide.md`, or both, plus any small script its guide or reader calls, such as `download.py`, `upload.py` or `store.py`. A recipe shows one source and one destination wired together.
 - `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo, such as `runner/run.sh`. Scheduled cloud runs start one folder above, so it does not load there.
-- `ui/review.html` is one file with no build step and shows any destination type. After a change, take a screenshot in a browser and republish it to the same artifact URL.
+- `ui/review.html` is one file with no build step and shows any destination type. It names no review store except in `claudeStore` and `httpStore`. After a change, open it through `integrations/sqlite/serve.py`, take a screenshot, and republish it to each claude.ai artifact that serves it.
 - Commits: one line, `type: what changed`, no trailers. The type sets the next version: `fix:` raises the last number, `feat:` the middle one, and `feat!:` or a `BREAKING CHANGE:` line the first one. `docs:`, `chore:`, `ci:` and `refactor:` raise nothing. `scripts/release.sh` opens a pull request with the new version and changelog. After it merges, `scripts/release.sh publish` makes the release.

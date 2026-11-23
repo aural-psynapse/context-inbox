@@ -51,6 +51,40 @@ class ConnectorTest(unittest.TestCase):
         }
         self.assertEqual(check(cfg, ["r.py", "g.md"])[0], 0)
 
+    def test_review_stores(self):
+        ok = [{"id": "C0123456789", "feeds": ["d"]}]
+        good = {
+            "sqlite named": {**slack(ok), "review_store": "sqlite", "review_page": "http://127.0.0.1:47821"},
+            "sqlite by default": {**slack(ok), "review_page": "https://inbox.acme.test/review"},
+            "claude named": {**slack(ok), "review_store": "claude-artifact"},
+            "own guide": {**slack(ok), "review_store": "./store.md", "review_page": "https://admin.acme.test/inbox"},
+        }
+        for label, cfg in good.items():
+            with self.subTest(label):
+                self.assertEqual(check(cfg, ["store.md"])[0], 0)
+        bad = {
+            "claude store, other link": {
+                **slack(ok),
+                "review_store": "claude-artifact",
+                "review_page": "http://127.0.0.1:47821",
+            },
+            "unknown store": {**slack(ok), "review_store": "postgres"},
+            "not a link": {**slack(ok), "review_store": "sqlite", "review_page": "review.db"},
+            "no page": {**slack(ok), "review_store": "sqlite", "review_page": None},
+        }
+        for label, cfg in bad.items():
+            with self.subTest(label):
+                code, err = check(cfg)
+                self.assertEqual(code, 1, err)
+                self.assertNotIn("Traceback", err)
+
+    def test_example_project_passes(self):
+        r = subprocess.run(
+            [sys.executable, CHECK, os.path.join(REPO, "projects-example")], capture_output=True, text=True
+        )
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('"name": "sqlite"', r.stdout)
+
     def test_errors(self):
         bad = {
             "channel name": slack([{"id": "general", "feeds": ["d"]}]),

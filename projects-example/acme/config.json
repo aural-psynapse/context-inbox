@@ -1,6 +1,7 @@
 {
   "project": "acme",
-  "review_page": "https://claude.ai/artifact/00000000-replace-with-your-page",
+  "review_store": "sqlite",
+  "review_page": "http://127.0.0.1:47821",
   "sources": [
     {
       "id": "slack-acme",

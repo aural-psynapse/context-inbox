@@ -144,7 +144,7 @@ textarea:focus, .btn:focus-visible, .nav:focus-visible, .row:focus-visible { out
 </div>
 
 <script>
-const S = { view: "items", runs: [], run: null, docs: [], status: "pending", target: "all", cur: null, editing: false, db: null, draft: {}, saving: null, err: null };
+const S = { view: "items", runs: [], run: null, docs: [], status: "pending", target: "all", cur: null, editing: false, store: null, draft: {}, saving: null, err: null };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TYPE_COLOR = { linear: "var(--t-linear)", attio: "var(--t-attio)", github: "var(--t-github)" };
@@ -275,7 +275,7 @@ async function decide(id, patch, advance) {
   const decision = { ...(p.decision || {}), ...(note != null ? { comment: note } : {}), ...patch, at: new Date().toISOString(), ...(patch.status && S.uid ? { by: S.uid } : {}) };
   if (advance) { const ps = visible(); const i = ps.findIndex((x) => x.id === p.id); S.cur = (ps[i + 1] || ps[i - 1] || {}).id ?? null; }
   S.saving = p.id; S.err = null; refreshCtl();
-  try { await S.db.collection("proposals").doc(p.id).update({ decision }); if (S.draft[p.id] === note) delete S.draft[p.id]; }
+  try { await S.store.decide(p.id, decision); if (S.draft[p.id] === note) delete S.draft[p.id]; }
   catch (e) { S.err = { id: p.id, text: "Could not save: " + (e.message || e.code) }; toast(`Could not save "${p.title}". ${S.canWrite === false ? "You can view this page but not change it. Ask the owner for edit access." : (e.message || e.code)}`); }
   S.saving = null; refreshCtl();
 }
@@ -283,7 +283,7 @@ async function decide(id, patch, advance) {
 function move(d) { const ps = visible(); const i = ps.findIndex((x) => x.id === S.cur); const n = ps[Math.max(0, Math.min(ps.length - 1, i + d))]; if (n && S.editing) { toast("Save or cancel your text edit first."); return; } if (n) { S.cur = n.id; S.editing = false; renderList(); renderDetail(); document.querySelector(".row.on")?.scrollIntoView({ block: "nearest" }); } }
 
 function act(a) {
-  if (!S.db) return;
+  if (!S.store) return;
   const leaves = S.status === "pending" || S.status === "ask";
   const cur = S.docs.find((x) => x.id === S.shown);
   if (S.editing && ["approve", "reject", "reset", "edit"].includes(a)) { toast("Save or cancel your text edit first."); return; }
@@ -324,31 +324,71 @@ document.onkeydown = (e) => {
   else if (k === "e") { e.preventDefault(); act("edit"); } else if (k === "u") act("reset");
 };
 
+// The page reads and saves through one of two stores. Published on claude.ai it uses the
+// storage and sign-in claude.ai gives the page. Anywhere else it asks the server it was
+// opened from: api/proposals, api/runs, api/me, and PATCH api/proposals/<id>.
+function claudeStore(db, user) {
+  const docs = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return {
+    async who() { return { uid: (await user?.id?.()) ?? null, canWrite: (await user?.can?.("data.write")) ?? null }; },
+    async names(ids) { const ps = user?.profiles ? await user.profiles(ids) : {}; return Object.fromEntries(ids.map((id) => [id, ps?.[id]?.name || "Someone"])); },
+    proposals(onDocs, onErr) { db.collection("proposals").onSnapshot((snap) => onDocs(docs(snap), !snap.metadata.fromCache), onErr); },
+    runs(onDocs) { db.collection("runs").orderBy("date", "desc").limit(30).onSnapshot((snap) => onDocs(docs(snap)), () => {}); },
+    decide(id, decision) { return db.collection("proposals").doc(id).update({ decision }); },
+  };
+}
+function httpStore() {
+  const get = async (path) => {
+    const r = await fetch(path, { cache: "no-store" }).catch(() => { throw { code: "no answer from the server" }; });
+    if (!r.ok) throw { code: "the server answered " + r.status };
+    return r.json();
+  };
+  // Ask again every 5 seconds, and redraw only when the answer changed.
+  const poll = (path, onDocs, onErr) => {
+    let last;
+    const tick = async () => {
+      try { const text = JSON.stringify(await get(path)); if (text !== last) { last = text; onDocs(JSON.parse(text), true); } }
+      catch (e) { onErr?.(e); }
+    };
+    tick(); setInterval(tick, 5000); return tick;
+  };
+  let reload = () => {};
+  return {
+    // An empty api/me means no login: everyone who can open the page can decide.
+    async who() { try { const me = await get("api/me"); return { uid: me.name || me.id || null, canWrite: me.can_write ?? null }; } catch { return { uid: null, canWrite: null }; } },
+    async names(ids) { return Object.fromEntries(ids.map((id) => [id, id])); },
+    proposals(onDocs, onErr) { reload = poll("api/proposals", onDocs, onErr); },
+    runs(onDocs) { poll("api/runs", onDocs); },
+    async decide(id, decision) {
+      const r = await fetch("api/proposals/" + encodeURIComponent(id), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) }).catch(() => { throw { message: "no answer from the server" }; });
+      if (!r.ok) throw { message: (await r.json().catch(() => ({}))).error || "the server answered " + r.status };
+      reload();
+    },
+  };
+}
+
 (async () => {
-  const db = await window.claude?.use?.("db");
-  if (!db) { $("rows").innerHTML = `<div class="empty">Sign in to claude.ai to review proposals.</div>`; $("detail").innerHTML = ""; return; }
-  S.db = db;
+  let store;
+  if (window.claude?.use) {
+    const db = await window.claude.use("db");
+    if (!db) { $("rows").innerHTML = `<div class="empty">Sign in to claude.ai to review proposals.</div>`; $("detail").innerHTML = ""; return; }
+    store = claudeStore(db, await window.claude.use("user"));
+  } else store = httpStore();
+  S.store = store;
   const t = setTimeout(() => { if (!S.docs.length) $("rows").innerHTML = `<div class="empty">Can't reach the proposals yet. Check your connection.</div>`; }, 10000);
-  const user = await window.claude.use("user");
-  S.canWrite = (await user?.can?.("data.write")) ?? null;
-  S.uid = (await user?.id?.()) ?? null; S.names = {};
+  const me = await store.who();
+  S.canWrite = me.canWrite; S.uid = me.uid; S.names = {};
   S.loadNames = async () => {
     const ids = [...new Set(S.docs.map((p) => p.decision?.by).filter((id) => id && !(id in S.names)))];
-    if (!ids.length || !user?.profiles) return;
-    const ps = await user.profiles(ids);
-    ids.forEach((id) => { S.names[id] = ps?.[id]?.name || "Someone"; });
+    if (!ids.length) return;
+    Object.assign(S.names, await store.names(ids));
     if (!S.editing && document.activeElement?.id !== "note") renderDetail();
   };
-  const pub = [];
-  const merge = () => {
-    S.docs = [...pub]
+  const merge = (docs) => {
+    S.docs = [...docs]
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     renderNav(); if (S.view === "runs") renderRuns(); else { renderList(); if (S.editing || document.activeElement?.id === "note") refreshCtl(); else renderDetail(); } S.loadNames();
   };
-  const sub = (col, arr) => db.collection(col).onSnapshot((snap) => {
-    if (!snap.metadata.fromCache) clearTimeout(t);
-    arr.length = 0; snap.docs.forEach((d) => arr.push({ id: d.id, ...d.data() })); merge();
-  }, (e) => { clearTimeout(t); if (col === "proposals") $("rows").innerHTML = `<div class="empty">Could not load proposals (${esc(e.code)}).</div>`; });
   const drawLast = () => {
     const r = S.runs[0]; if (!r) return;
     const errs = (r.errors || []).length;
@@ -365,11 +405,15 @@ document.onkeydown = (e) => {
     el.className = "lastrun" + (errs ? " bad" : "") + (S.view === "runs" ? " on" : "");
   };
   setInterval(drawLast, 60000);
-  db.collection("runs").orderBy("date", "desc").limit(30).onSnapshot((snap) => {
-    S.runs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  store.runs((runs) => {
+    S.runs = runs;
     if (S.view === "runs") render();
     drawLast();
-  }, () => {});
-  sub("proposals", pub);
+  });
+  store.proposals((docs, live) => { if (live) clearTimeout(t); merge(docs); }, (e) => {
+    clearTimeout(t);
+    if (S.docs.length) toast(`Lost the connection (${e.code}). These are the last items loaded.`);
+    else $("rows").innerHTML = `<div class="empty">Could not load proposals (${esc(e.code)}).</div>`;
+  });
 })();
 </script>
