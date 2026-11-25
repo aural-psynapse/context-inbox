@@ -229,7 +229,11 @@ class RunEveryTest(unittest.TestCase):
         stop = threading.Event()
 
         thread = serve.run_every(0.002, script, stop)
-        time.sleep(0.5)
+        # Wait for two runs rather than a fixed time: starting a shell can take seconds on a busy machine.
+        for _ in range(200):
+            if os.path.exists(log) and len(Path(log).read_text().split()) >= 2:
+                break
+            time.sleep(0.05)
         stop.set()
         thread.join(2)
 
