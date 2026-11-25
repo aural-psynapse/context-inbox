@@ -130,7 +130,7 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
    `--on-decide` writes each item the moment you approve it. `--every 5 --run` reads new messages every 5 minutes while the page is up. The page has no login and answers on your machine only. To review on claude.ai with your team signed in, follow [`integrations/claude-artifact/guide.md`](integrations/claude-artifact/guide.md). To keep the items in a database you already have, see "Review store" in [`AGENTS.md`](AGENTS.md).
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
 4. **Optional: keep the keys out of the agent's reach.** Put each destination behind the MCP server, as "MCP server" in [`AGENTS.md`](AGENTS.md) describes: a tools file per destination, pinned by you, and one registration file with the keys.
-5. **On the claude.ai page,** step 2's options do not apply. Start each run yourself with `runner/run.sh <project>`, or set up a scheduled cloud task as [`runner/README.md`](runner/README.md) says.
+5. **On the claude.ai page,** step 2's options do not apply. With a Slack source, [`integrations/slack/worker.md`](integrations/slack/worker.md) starts a cloud run within a minute of each message and each approval. Otherwise start each run yourself with `runner/run.sh <project>`.
 
 <details>
 <summary><b>Config reference</b></summary>
@@ -141,6 +141,7 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
 | `review_page` | The link people open to review. |
 | `review_store` | Where the items live: `sqlite`, `claude-artifact`, or a path to your own guide inside the project folder. |
 | `routine` | Optional. Id of the scheduled task, such as `trig_01ABC`, so `runner/fire.sh` can start it. |
+| `run_connector` | Optional. Name of the claude.ai connector whose `run_now` tool starts a run, so the claude.ai page writes an item within a minute of its approval. See [`integrations/slack/worker.md`](integrations/slack/worker.md). |
 | `sources[].id` | Name for the source. Cursors are stored under it. |
 | `sources[].type` | Name of the tool, such as `slack`. |
 | `sources[].reader` | Integration name, such as `slack`, or a path inside the project folder. |

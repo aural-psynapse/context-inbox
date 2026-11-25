@@ -36,7 +36,7 @@ Ask the person only what you cannot look up. Done when the first run's items sho
      --on-decide "runner/act.sh <project>" \
      --every 5 --run "runner/read-now.sh <project>"
    ```
-   With the `claude-artifact` store, a run needs a Claude Code session signed in to claude.ai. The person starts one with `runner/run.sh <project>`, or sets up a scheduled cloud task as [`runner/README.md`](runner/README.md) says.
+   With the `claude-artifact` store and a Slack source, set up [`integrations/slack/worker.md`](integrations/slack/worker.md): each Slack message and each approval starts a cloud run within a minute, with no computer switched on. Otherwise a run needs a Claude Code session signed in to claude.ai, started with `runner/run.sh <project>`.
 
 ## Sources
 

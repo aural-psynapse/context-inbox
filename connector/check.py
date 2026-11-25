@@ -42,7 +42,17 @@ def project_dir(arg: str) -> Path:
 
 URL = re.compile(r"^https?://[^\s<>]+$")
 PLACEHOLDER = re.compile(r"replace|example|00000000")
-TOP_KEYS = {"project", "name", "review_page", "review_store", "routine", "old_after_hours", "sources", "destinations"}
+TOP_KEYS = {
+    "project",
+    "name",
+    "review_page",
+    "review_store",
+    "routine",
+    "run_connector",
+    "old_after_hours",
+    "sources",
+    "destinations",
+}
 TYPOS = {
     "feed": "feeds",
     "channel": "channels",
@@ -123,6 +133,9 @@ def check(project: Path) -> dict:
     routine = cfg.get("routine")
     if routine is not None and (not isinstance(routine, str) or not re.match(r"^trig_[A-Za-z0-9]+$", routine)):
         errors.append("routine must be a scheduled task id like trig_01ABC")
+    run = cfg.get("run_connector")
+    if run is not None and (not isinstance(run, str) or not run.strip() or len(run) > 60 or "\n" in run):
+        errors.append('run_connector must be the name of a claude.ai connector, such as "Context Inbox runs"')
     old_after = cfg.get("old_after_hours", 24)
     if isinstance(old_after, bool) or not isinstance(old_after, int | float) or old_after <= 0:
         errors.append("old_after_hours must be a number of hours above 0, such as 24")

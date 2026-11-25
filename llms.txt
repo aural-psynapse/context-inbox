@@ -22,6 +22,7 @@ Each project keeps a folder in `projects/` at the top of this repo, such as `pro
 - [integrations/github/guide.md](integrations/github/guide.md): one commit per item to a repo.
 - [integrations/sqlite/guide.md](integrations/sqlite/guide.md): review store in one SQLite file, with a small server for the page. The default.
 - [integrations/claude-artifact/guide.md](integrations/claude-artifact/guide.md): review store and sign-in on claude.ai.
+- [integrations/slack/worker.md](integrations/slack/worker.md): a Cloudflare Worker that starts a cloud run within a minute of each Slack message and each approval on the claude.ai page.
 - [integrations/recipes.md](integrations/recipes.md): Slack to Linear, Slack to Attio, Slack to GitHub.
 
 ## Run

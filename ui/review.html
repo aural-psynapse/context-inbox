@@ -294,9 +294,15 @@ async function decide(id, patch, advance) {
     if (S.draft[p.id] === note) delete S.draft[p.id];
     // A destination that publishes on approval answers with `publishing`: keep that item in view and selected.
     if (saved && publishing(saved)) { S.hold.add(p.id); S.cur = p.id; Object.assign(p, saved); render(); }
+    if (patch.status === "approved") S.store.runNow?.().catch((e) => toast(runError(e)));
   }
   catch (e) { S.err = { id: p.id, text: "Could not save: " + (e.message || e.code) }; toast(`Could not save "${p.title}". ${S.canWrite === false ? "You can view this page but not change it. Ask the owner for edit access." : (e.message || e.code)}`); }
   S.saving = null; refreshCtl();
+}
+
+function runError(e) {
+  const fix = { server_not_connected: "Add the run connector in claude.ai Settings, Connectors.", needs_reauth: "Reconnect the run connector in claude.ai Settings, Connectors.", not_in_manifest: "This page may not use the run connector. Allow it in the page's Permissions menu." }[e?.code];
+  return "Approved. It gets written on the next run, because starting one now failed. " + (fix || (e?.message || e?.code || ""));
 }
 
 function move(d) { const ps = visible(); const i = ps.findIndex((x) => x.id === S.cur); const n = ps[Math.max(0, Math.min(ps.length - 1, i + d))]; if (n && S.editing) { toast("Save or cancel your text edit first."); return; } if (n) { S.cur = n.id; S.editing = false; renderList(); renderDetail(); document.querySelector(".row.on")?.scrollIntoView({ block: "nearest" }); } }
@@ -346,9 +352,17 @@ document.onkeydown = (e) => {
 // The page reads and saves through one of two stores. Published on claude.ai it uses the
 // storage and sign-in claude.ai gives the page. Anywhere else it asks the server it was
 // opened from: api/proposals, api/runs, api/me, and PATCH api/proposals/<id>.
-function claudeStore(db, user) {
+function claudeStore(db, user, mcp) {
   const docs = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   return {
+    // A project that sets `run_connector` names a claude.ai connector whose run_now tool starts a run,
+    // so an approved item is written within minutes. The config sits in the page's project/config doc.
+    async runNow() {
+      if (!mcp) return;
+      const snap = await db.doc("project/config").get();
+      const name = snap.exists ? JSON.parse(String(snap.data().json || "{}")).run_connector : null;
+      if (name) await mcp.callTool(name, "run_now", {});
+    },
     async who() { return { uid: (await user?.id?.()) ?? null, canWrite: (await user?.can?.("data.write")) ?? null }; },
     async names(ids) { const ps = user?.profiles ? await user.profiles(ids) : {}; return Object.fromEntries(ids.map((id) => [id, ps?.[id]?.name || "Someone"])); },
     proposals(onDocs, onErr) { db.collection("proposals").onSnapshot((snap) => onDocs(docs(snap), !snap.metadata.fromCache), onErr); },
@@ -394,7 +408,7 @@ function httpStore() {
   if (window.claude?.use) {
     const db = await window.claude.use("db");
     if (!db) { $("rows").innerHTML = `<div class="empty">Sign in to claude.ai to review proposals.</div>`; $("detail").innerHTML = ""; return; }
-    store = claudeStore(db, await window.claude.use("user"));
+    store = claudeStore(db, await window.claude.use("user"), await window.claude.use("mcp"));
   } else store = httpStore();
   S.store = store;
   const t = setTimeout(() => { if (!S.docs.length) $("rows").innerHTML = `<div class="empty">Can't reach the proposals yet. Check your connection.</div>`; }, 10000);
