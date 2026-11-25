@@ -53,7 +53,9 @@ class PermissionsTest(unittest.TestCase):
 
     def test_project_in_projects_folder_may_edit_only_itself(self):
         projects = os.path.join(REPO, "projects")
-        os.makedirs(projects, exist_ok=True)
+        if not os.path.isdir(projects):
+            os.makedirs(projects)
+            self.addCleanup(os.rmdir, projects)
         with tempfile.TemporaryDirectory(dir=projects) as mine, tempfile.TemporaryDirectory(dir=projects) as sibling:
             shutil.copytree(os.path.join(REPO, "projects-example", "acme"), mine, dirs_exist_ok=True)
             out = subprocess.run(
