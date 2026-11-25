@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/aural-psynapse/context-inbox/compare/v2.0.0...v2.1.0) (2026-11-25)
+
+
+### Features
+
+* Slack Worker starts a cloud run within a minute of each message and each approval ([eed4fe2](https://github.com/aural-psynapse/context-inbox/commit/eed4fe2f9a64e6e5286a0b1bc0b84dc65e705368))
+
 ## [2.0.0](https://github.com/aural-psynapse/context-inbox/compare/v1.5.2...v2.0.0) (2026-11-25)
 
 
