@@ -16,7 +16,7 @@ This repo holds:
 
 Each project keeps its own folder in `projects/` at the top of this repo, such as `projects/acme/`: `config.json` and `RULES.md`, plus any reader or guide it wrote itself. Git ignores `projects/`, so a project's settings never get pushed to this public repo. [`projects-example/`](projects-example/) shows the layout to copy.
 
-You have two jobs here. **Set up a project** once, then do the **daily run** on a schedule.
+You have two jobs here. **Set up a project** once, then do **a run** each time one starts. A run pushes approved items, reads new messages and proposes new items.
 
 ## Set up a project
 
@@ -29,8 +29,14 @@ Ask the person only what you cannot look up. Done when the first run's items sho
 5. **Store tokens outside git.** Put each source token in the env var named by `secret`. In a cloud environment, store it as a network secret for the API's host and leave the env var unset.
 6. **Check the config.** Run `python3 connector/check.py <project>` until it exits 0. Here and in the runner scripts, `<project>` is the folder name in `projects/`, such as `acme`. A value with `/` is a folder path instead.
 7. **Set up the review store.** Pick one (see Review store below), set `review_store`, and follow its guide's "Set up". `sqlite` needs nothing but this repo. Put the link people open in `review_page`, and tell the person who can open it.
-8. **Run once.** Do the daily run below. The first run reads the whole history.
-9. **Schedule it.** Offer a daily scheduled run with the prompt in [`runner/prompt.txt`](runner/prompt.txt), and put its id in `routine` in `config.json` so `runner/fire.sh` can start it at any time. [`runner/README.md`](runner/README.md) has the steps. It needs this repo, every repo a guide writes to, and every connector a guide names. A scheduled cloud run clones this repo from GitHub, and `projects/` never goes there. To run a project in the cloud, keep its folder as a private repo of its own, give the task that repo too, and point the prompt at that folder.
+8. **Run once.** Do a run as "A run" below says. The first run reads the whole history.
+9. **Keep it running.** With the `sqlite` store, start the page with both options below and give the person the command. Each approval gets written the moment the person clicks, and new messages become items every 5 minutes while the page is up:
+   ```sh
+   python3 integrations/sqlite/serve.py projects/<project>/review.db \
+     --on-decide "runner/act.sh <project>" \
+     --every 5 --run "runner/read-now.sh <project>"
+   ```
+   With the `claude-artifact` store, a run needs a Claude Code session signed in to claude.ai. The person starts one with `runner/run.sh <project>`, or sets up a scheduled cloud task as [`runner/README.md`](runner/README.md) says.
 
 ## Sources
 
@@ -152,7 +158,7 @@ The file defines, with the Python standard library only:
 
 A destination without `tools` keeps the old way: the agent writes approved items by the guide, and `push_approved` lists them as waiting.
 
-With the server, the daily run calls `push_approved` for step 1, `propose` and `withdraw` for step 3, `save_cursors` for step 4 and `log_run` for step 5. `runner/run.sh` allows the server's tools.
+With the server, a run calls `push_approved` for step 1, `propose` and `withdraw` for step 3, `save_cursors` for step 4 and `log_run` for step 5. `runner/run.sh` allows the server's tools.
 
 ## Review page collections
 
@@ -170,7 +176,7 @@ An approved item may carry `publishing: { version, since }` while its destinatio
 
 An item is **decided** when `decision.status` is `approved` or `rejected`, or when it carries `pushed`. A reviewer can also save a comment without deciding: `decision.status` stays `pending` and `decision.comment` holds the text. On an item marked `unsure`, that comment is the reviewer's answer. The review page shows pushed items as written, with their link, and locks them.
 
-## Daily run
+## A run
 
 Run the steps in order. Each ends on its done line.
 
@@ -206,6 +212,7 @@ This repo stays generic. It holds no real project's names, IDs, people or links.
 
 - `projects-example/acme/` passes `connector/check.py`. Nothing under `projects/` is ever committed. Readers and review stores are Python 3.10+, standard library only.
 - An integration is a folder in `integrations/` holding `reader.py`, `guide.md`, or both, plus any small script its guide or reader calls, such as `download.py`, `upload.py` or `store.py`. A recipe shows one source and one destination wired together.
-- `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo, such as `runner/run.sh`. Scheduled cloud runs start one folder above, so it does not load there.
+- `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo, such as `runner/run.sh`. A scheduled cloud run starts one folder above, so it does not load there.
 - `ui/review.html` is one file with no build step and shows any destination type. It names no review store except in `claudeStore` and `httpStore`. After a change, open it through `integrations/sqlite/serve.py`, take a screenshot, and republish it to each claude.ai artifact that serves it, made with `ui/named.py` so it keeps that project's name. The page says "Context Inbox" twice, in `<title>` and in the `brand` line; `ui/named.py` replaces exactly those two.
+- Docs follow the code in the same commit. A change to what a person can do, or how they start it, updates `README.md`, `AGENTS.md`, `llms.txt` and the touched guide or `runner/README.md` before it is pushed. `tests/test_docs.py` fails when a runner script, an integration or a review page option goes unnamed in them.
 - Commits: one line, `type: what changed`, no trailers. The type sets the next version: `fix:` raises the last number, `feat:` the middle one, and `feat!:` or a `BREAKING CHANGE:` line the first one. `docs:`, `chore:`, `ci:` and `refactor:` raise nothing. `scripts/release.sh` opens a pull request with the new version and changelog. After it merges, `scripts/release.sh publish` makes the release.

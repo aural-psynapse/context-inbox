@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run one project's daily run now, on this machine, in an interactive Claude Code session.
+# Do one project's run now, on this machine, in an interactive Claude Code session.
 # Usage: runner/run.sh PROJECT, a folder name in projects/ such as acme, or a path with /
 # Set CONTEXT_INBOX_TOOLS to the connector servers your guides use, such as
 # "mcp__claude_ai_Linear mcp__claude_ai_Attio". Claude Code must be signed in

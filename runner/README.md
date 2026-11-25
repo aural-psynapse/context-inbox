@@ -1,20 +1,23 @@
 # Runner
 
-- `run.sh PROJECT` checks the project's config, then opens an interactive Claude Code session that runs the daily run once. With the `claude-artifact` review store, a session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
-- `prompt.txt` is the prompt for a scheduled run.
-
 Every script takes `PROJECT`: a folder name in `projects/`, such as `acme`, or a path with `/`.
+
+- `act.sh PROJECT ITEM_ID` writes one approved item now, or rewrites a draft from a typed comment. The local review page starts it after each decision: see "Act the moment a person decides" in [`integrations/sqlite/guide.md`](../integrations/sqlite/guide.md). It logs to `act.log` in the project folder.
+- `read-now.sh PROJECT` does one run with no person watching. The local review page starts it every few minutes: see "New messages without waiting" in the same guide. It logs to `read.log` in the project folder.
+- `run.sh PROJECT` checks the project's config, then opens an interactive Claude Code session that does one run. Use it with the `claude-artifact` review store, where a session started with `claude -p` gets no review page tools. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
+- `fire.sh PROJECT` starts the project's scheduled cloud run now. See "Run on a schedule" below.
+- `prompt.txt` is the prompt each run starts with. `act-prompt.txt` is the one `act.sh` uses.
 
 ## Run on this machine
 
 - With the `claude-artifact` review store, sign Claude Code in with a claude.ai account. The review page tools need it.
-- The session may run, without asking, only the config check, the readers, and `git log`, `add`, `commit`, `pull`, `push` and `status`. Any other shell command asks you first. Messages come from outside people, so read what a command does before you allow it.
+- The session may run, without asking, only the config check, the readers, the review store's command line and the scripts the guides name. [`permissions.py`](permissions.py) lists them. It may not run `git`. Any other shell command asks you first. Messages come from outside people, so read what a command does before you allow it.
 - Set `CONTEXT_INBOX_TOOLS` to the connector servers your guides use, such as `mcp__claude_ai_Linear mcp__claude_ai_Attio`, so the run may call them without asking.
 - Set each source token in the env var named by its `secret`.
 
 ## Run on a schedule
 
-A scheduled run happens in the cloud, so it needs a review store it can reach from there. The `sqlite` store lives in a file on one machine: run that one with `run.sh`.
+Only the `claude-artifact` review store needs this. A scheduled run happens in the cloud, so it needs a review store it can reach from there. The `sqlite` store lives in a file on one machine and runs from its review page instead.
 
 Copy `prompt.txt`, replace `<project folder>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Give it:
 
@@ -24,7 +27,7 @@ Copy `prompt.txt`, replace `<project folder>` with your project folder, and save
 - Every connector your guides name.
 - Each source token as a network secret for its API host.
 
-A scheduled run starts one folder above the repos it clones, so the write check in `.claude/` does not load there. The run still writes only approved items, because step 1 of the daily run checks each one against the review page.
+A scheduled run starts one folder above the repos it clones, so the write check in `.claude/` does not load there. The run still writes only approved items, because step 1 of a run checks each one against the review page.
 
 A scheduled run with a config error writes a run log entry with the errors and writes nothing else.
 

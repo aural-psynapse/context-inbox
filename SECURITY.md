@@ -4,7 +4,7 @@ Report a security problem through [GitHub's private vulnerability reporting](../
 
 Things worth reporting:
 
-- A way for the daily run to write to a destination without an approved item.
+- A way for a run to write to a destination without an approved item.
 - A way for a message to make the agent run commands or leak data.
 - A way for someone with view access to the review page to change it.
 

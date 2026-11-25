@@ -4,7 +4,7 @@ These apply to every project. The project's own `RULES.md` adds routing, people 
 
 ## Hard rules
 
-- Propose only. Destinations are written in step 1 of the daily run, never while proposing.
+- Propose only. Destinations are written in step 1 of a run, never while proposing.
 - Every item cites at least one message: author, date, link, and a verbatim quote of at most 2 sentences.
 - A fact without a citation does not exist. Deal sizes, dates, names and statuses come from a cited message or stay out.
 - A message feeds only the destinations its channel lists in `feeds`.

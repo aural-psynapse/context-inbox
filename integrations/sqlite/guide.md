@@ -32,24 +32,24 @@ Every command starts with `python3 integrations/sqlite/store.py <project folder>
 
 ## Act the moment a person decides
 
-Start the page with `--on-decide` and each decision takes effect at once, with no wait for the daily run:
+Start the page with `--on-decide` and each decision takes effect at once:
 
 ```sh
-python3 integrations/sqlite/serve.py <project folder>/review.db --on-decide "runner/act.sh <project>"
+python3 integrations/sqlite/serve.py projects/<project>/review.db --on-decide "runner/act.sh <project>"
 ```
 
 - Approve: `runner/act.sh` writes that item to its destination now and saves `pushed`.
 - A comment typed on an undecided item: it rewrites the draft to follow the comment. The page shows the new text within 5 seconds.
 - Reject: nothing to do.
 
-Each action is logged in `act.log` in the project folder. The daily run still pushes anything approved while the page was down.
+Each action is logged in `act.log` in the project folder. The next run pushes anything approved while the page was down.
 
-## New messages without waiting for the daily run
+## New messages without waiting
 
 Start the page with `--every` and `--run`, and a run reads new messages every few minutes while the page is up:
 
 ```sh
-python3 integrations/sqlite/serve.py <project folder>/review.db --every 5 --run "runner/read-now.sh <project>"
+python3 integrations/sqlite/serve.py projects/<project>/review.db --every 5 --run "runner/read-now.sh <project>"
 ```
 
 While the computer is off, messages wait. The first run after it comes back marks items whose messages waited longer than `old_after_hours` with "Old, waited ..." in place of the date.
@@ -70,4 +70,10 @@ While the computer is off, messages wait. The first run after it comes back mark
 
 ## Where a run can reach it
 
-A run must happen on the machine that holds the file, such as `runner/run.sh`. A scheduled cloud run cannot reach a file on a laptop: use a store the cloud run can reach, such as [`claude-artifact`](../claude-artifact/guide.md).
+A run must happen on the machine that holds the file, such as `runner/read-now.sh` or `runner/run.sh`. Both options above go together in one command:
+
+```sh
+python3 integrations/sqlite/serve.py projects/<project>/review.db --on-decide "runner/act.sh <project>" --every 5 --run "runner/read-now.sh <project>"
+```
+
+ A scheduled cloud run cannot reach a file on a laptop: use a store the cloud run can reach, such as [`claude-artifact`](../claude-artifact/guide.md).

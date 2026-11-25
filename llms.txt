@@ -6,7 +6,7 @@ Each project keeps a folder in `projects/` at the top of this repo, such as `pro
 
 ## Start here
 
-- [AGENTS.md](AGENTS.md): setup, reader and guide formats, and the daily run.
+- [AGENTS.md](AGENTS.md): setup, reader and guide formats, and the steps of a run.
 - [RULES.md](RULES.md): what a proposal is, how to write it, and its JSON shape.
 - [server/mcp.py](server/mcp.py): MCP server. The agent reads and proposes through it. Only approved items get written, by the server, with keys the agent never holds.
 - [connector/check.py](connector/check.py): checks each project folder and prints each reader command and guide path.
@@ -26,9 +26,10 @@ Each project keeps a folder in `projects/` at the top of this repo, such as `pro
 
 ## Run
 
-- [runner/prompt.txt](runner/prompt.txt): prompt for a scheduled run.
-- [runner/act.sh](runner/act.sh): act on one item the moment a person decides on the local review page.
-- [runner/fire.sh](runner/fire.sh): start the scheduled cloud run from any agent or script.
+- [runner/prompt.txt](runner/prompt.txt): the prompt each run starts with.
+- [runner/act.sh](runner/act.sh): writes an item the moment a person approves it on the local review page.
+- [runner/read-now.sh](runner/read-now.sh): one run with no person watching, which the local review page starts every few minutes.
+- [runner/fire.sh](runner/fire.sh): start the scheduled cloud run, for the claude.ai page.
 - [runner/run.sh](runner/run.sh): run once on this machine, in an interactive session.
 - [.claude/skills/](.claude/skills/): setup and run-now skills.
 - [.claude/hooks/require-ctx-marker.py](.claude/hooks/require-ctx-marker.py): refuses destination writes that lack a `ctx:` marker, and chat posts.

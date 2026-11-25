@@ -1,4 +1,4 @@
-"""Print the Claude Code settings a daily run gets, as JSON for `claude --settings`.
+"""Print the Claude Code settings a run gets, as JSON for `claude --settings`.
 
 Usage: python3 runner/permissions.py PROJECT
 

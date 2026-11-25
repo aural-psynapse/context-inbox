@@ -18,7 +18,7 @@ its last argument, without waiting for it. runner/act.sh is the command that
 pushes an approved item at once, or rewrites a draft from a typed instruction.
 
 --every with --run: while the page is up, start COMMAND every MINUTES minutes, so
-new messages become items without waiting for the daily run. A run still going
+new messages become items within MINUTES minutes. A run still going
 when the next one is due is left to finish; the next starts after it.
 runner/read-now.sh is that command.
 """

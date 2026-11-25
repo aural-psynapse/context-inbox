@@ -1,1 +1,1 @@
-Run the daily run in context-inbox/AGENTS.md for project folder <project folder>. Write to a destination only for items approved on the review page. Write the runs doc even when a step fails.
+Do one run as "A run" in context-inbox/AGENTS.md says, for project folder <project folder>. Write to a destination only for items approved on the review page. Write the runs doc even when a step fails.

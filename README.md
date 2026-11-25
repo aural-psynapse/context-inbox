@@ -50,9 +50,9 @@ Set up context-inbox for project "acme" following AGENTS.md.
 Read #sales and #support in our Slack. Write deals to Attio and bugs to Linear.
 ```
 
-The agent finds the channel IDs, picks a reader and a guide for each tool, checks the config, starts the review page and runs once. Then it offers to schedule a daily run.
+The agent finds the channel IDs, picks a reader and a guide for each tool, checks the config, starts the review page and runs once.
 
-After that, your part is the review page. Approve what is right, and the next run writes it.
+After that, your part is the review page. Approve what is right, and it gets written the moment you click. New messages show up as items every 5 minutes while the page is up.
 
 To set it up by hand, see [Manual setup](#manual-setup).
 
@@ -106,8 +106,8 @@ Items wait here until someone decides. You answer the agent's questions, follow 
 | [MCP server](server/mcp.py) | The agent's one door to the items and the destinations. Reads go through, changes wait for a person, and only approved items get written. |
 | [Connector](connector/check.py) | Finds each project folder in `projects/` and checks its config. A mistake stops the run before it reads a message. |
 | [Review page](ui/review.html) | Approve, reject, edit and answer. Filters by status and destination. Run log. |
-| [Runner](runner/) | The daily prompt. [`fire.sh`](runner/fire.sh) starts a run from any agent or script. [`run.sh`](runner/run.sh) runs once while you watch. [`act.sh`](runner/act.sh) acts on one decision at once, [`read-now.sh`](runner/read-now.sh) reads on a timer. [`permissions.py`](runner/permissions.py) limits what each run may start and write. |
-| [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
+| [Runner](runner/) | [`act.sh`](runner/act.sh) writes an item the moment you approve it. [`read-now.sh`](runner/read-now.sh) reads new messages every few minutes. [`run.sh`](runner/run.sh) runs once while you watch. [`fire.sh`](runner/fire.sh) starts a scheduled cloud run, for the claude.ai page. [`permissions.py`](runner/permissions.py) limits what each run may start and write. |
+| [Agent instructions](AGENTS.md) | Setup and a run, step by step, plus the [proposal rules](RULES.md). |
 | [Skills and hook](.claude/) | Claude Code skills for setup and run-now. A hook that refuses the destination writes it lists when they lack a `ctx:` marker, and any chat post. |
 | [Example project](projects-example/) | Acme: Slack to Linear and Slack to Attio. |
 
@@ -121,18 +121,16 @@ You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a conne
    python3 connector/check.py <project>
    ```
    `<project>` is the folder name, such as `acme`. The runner scripts and the MCP server take the same name.
-2. **Start the review page.** The default keeps the items in one SQLite file beside your config:
+2. **Start the review page.** The default keeps the items in one SQLite file beside your config. Open http://127.0.0.1:47821 once it is up:
    ```sh
-   python3 integrations/sqlite/serve.py projects/<project>/review.db   # then open http://127.0.0.1:47821
+   python3 integrations/sqlite/serve.py projects/<project>/review.db \
+     --on-decide "runner/act.sh <project>" \
+     --every 5 --run "runner/read-now.sh <project>"
    ```
-   It has no login and answers on your machine only. To review on claude.ai with your team signed in, follow [`integrations/claude-artifact/guide.md`](integrations/claude-artifact/guide.md). To keep the items in a database you already have, see "Review store" in [`AGENTS.md`](AGENTS.md).
+   `--on-decide` writes each item the moment you approve it. `--every 5 --run` reads new messages every 5 minutes while the page is up. The page has no login and answers on your machine only. To review on claude.ai with your team signed in, follow [`integrations/claude-artifact/guide.md`](integrations/claude-artifact/guide.md). To keep the items in a database you already have, see "Review store" in [`AGENTS.md`](AGENTS.md).
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
 4. **Optional: keep the keys out of the agent's reach.** Put each destination behind the MCP server, as "MCP server" in [`AGENTS.md`](AGENTS.md) describes: a tools file per destination, pinned by you, and one registration file with the keys.
-5. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<project folder>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. A scheduled cloud run clones this repo from GitHub, and `projects/` never goes there. To run a project in the cloud, keep its folder as a private repo of its own, give the task that repo too, and point the prompt at that folder. Start extra runs with:
-   ```sh
-   runner/fire.sh <project>   # no person needed
-   runner/run.sh  <project>   # watch it run
-   ```
+5. **On the claude.ai page,** step 2's options do not apply. Start each run yourself with `runner/run.sh <project>`, or set up a scheduled cloud task as [`runner/README.md`](runner/README.md) says.
 
 <details>
 <summary><b>Config reference</b></summary>
@@ -162,14 +160,14 @@ Other keys on a destination, such as `team` or `repo`, are read by its guide. Ot
 <summary><b>Repo layout</b></summary>
 
 ```text
-AGENTS.md                instructions for the agent: setup and daily run
+AGENTS.md                instructions for the agent: setup and a run
 RULES.md                 what a proposal is and its JSON shape
 connector/check.py       finds and checks project configs
 server/mcp.py            MCP server: reads, proposals, approved writes
 integrations/            readers, guides, review stores, recipes
 ui/review.html           review page and run log
 ui/named.py              the review page with a project's name
-runner/                  daily prompt, run scripts, permissions.py
+runner/                  run prompt, run scripts, permissions.py
 .claude/                 skills and the write check
 projects/                your project folders, ignored by git
 projects-example/        an example project to copy

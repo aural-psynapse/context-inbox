@@ -2,7 +2,7 @@
 
 Every record a run writes carries `ctx: <item id>`. This hook checks that the
 marker is present. It cannot check that the item was approved: the agent does
-that in step 1 of the daily run, against the review page.
+that in step 1 of a run, against the review page.
 
 Checked:
 - connector writes that create or change text: issues, comments, documents,
