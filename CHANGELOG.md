@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/aural-psynapse/context-inbox/compare/v1.5.2...v2.0.0) (2026-11-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* keep each project in an ignored projects/ folder instead of a separate repo
+
+### Features
+
+* keep each project in an ignored projects/ folder instead of a separate repo ([d741e66](https://github.com/aural-psynapse/context-inbox/commit/d741e663f17f95aaa82613d64e786962fa94a1b7))
+
+
+### Bug Fixes
+
+* lock the projects folder even before it exists ([34fcc81](https://github.com/aural-psynapse/context-inbox/commit/34fcc81abda3feaa5a977356930b2ee07cc4dcd0))
+
 ## [1.5.2](https://github.com/aural-psynapse/context-inbox/compare/v1.5.1...v1.5.2) (2026-11-23)
 
 
