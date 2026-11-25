@@ -82,7 +82,7 @@ def main() -> None:
     locked = [c / "**" if c.is_dir() else c for c in sorted(HERE.iterdir()) if c != projects]
     if projects == real.parent:
         locked += [c / "**" if c.is_dir() else c for c in sorted(projects.iterdir()) if c != real]
-    elif projects.is_dir() and projects not in real.parents:
+    elif projects not in real.parents:
         locked.append(projects / "**")
     locked += [project / "review.db", project / "review.db-*", *programs]
     locked += [d["tools_path"] for d in checked["destinations"] if d.get("tools_path")]
