@@ -31,7 +31,7 @@
    ```
    Run `npx wrangler deploy`, then store the two secrets, each copied first: `pbpaste | npx wrangler secret put FIRE_TOKEN` and `pbpaste | npx wrangler secret put SLACK_SIGNING_SECRET`. The signing secret is on the Slack app's **Basic Information** page.
 3. **Slack.** On the Slack app that holds the reader's token, open **Event Subscriptions**, turn events on, and set the Request URL to the Worker's address. Under **Subscribe to events on behalf of users**, add `message.channels`, `message.groups` and `message.im`, then save.
-4. **Approving starts a run.** In claude.ai, open Settings, Connectors, and add a custom connector named `Context Inbox runs` with the address `https://<worker address>/mcp/<MCP_PATH>`. Set `"run_connector": "Context Inbox runs"` in `config.json` and in `project/config`. Publish the review page with the `mcp` capability for that connector and its `run_now` tool.
+4. **Approving starts a run.** In claude.ai, open Settings, Connectors, and add a custom connector named `Slack Context Inbox` with the address `https://<worker address>/mcp/<MCP_PATH>`. Set `"run_connector": "Slack Context Inbox"` in `config.json` and in `project/config`. Publish the review page with the `mcp` capability for that connector and its `run_now` tool.
 
 ## Check it
 

@@ -135,7 +135,7 @@ def check(project: Path) -> dict:
         errors.append("routine must be a scheduled task id like trig_01ABC")
     run = cfg.get("run_connector")
     if run is not None and (not isinstance(run, str) or not run.strip() or len(run) > 60 or "\n" in run):
-        errors.append('run_connector must be the name of a claude.ai connector, such as "Context Inbox runs"')
+        errors.append('run_connector must be the name of a claude.ai connector, such as "Slack Context Inbox"')
     old_after = cfg.get("old_after_hours", 24)
     if isinstance(old_after, bool) or not isinstance(old_after, int | float) or old_after <= 0:
         errors.append("old_after_hours must be a number of hours above 0, such as 24")
