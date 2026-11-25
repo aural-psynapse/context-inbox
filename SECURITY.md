@@ -8,4 +8,4 @@ Things worth reporting:
 - A way for a message to make the agent run commands or leak data.
 - A way for someone with view access to the review page to change it.
 
-Tokens never belong in this repo or a projects repo. Keep them in environment variables or your cloud environment's secrets.
+Tokens never belong in this repo or in a project folder. Keep them in environment variables or your cloud environment's secrets.

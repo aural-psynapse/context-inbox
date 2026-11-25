@@ -7,14 +7,14 @@ This repo holds:
 | Part | Where |
 |---|---|
 | Instructions for you | this file, [`RULES.md`](RULES.md) |
-| Connector: finds a projects repo and checks each config | [`connector/check.py`](connector/check.py) |
+| Connector: finds each project folder and checks its config | [`connector/check.py`](connector/check.py) |
 | Integrations: readers, guides, review stores, and recipes that pair them | [`integrations/`](integrations/) |
 | MCP server: the agent's only door to the items and the destinations | [`server/mcp.py`](server/mcp.py) |
 | Review page with run log | [`ui/review.html`](ui/review.html) |
 | Runner: prompt and local run script | [`runner/`](runner/) |
 | Skills and a hook for Claude Code | [`.claude/`](.claude/) |
 
-Each project keeps its own folder in a separate private repo: `config.json` and `RULES.md`, plus any reader or guide it wrote itself. [`projects-example/`](projects-example/) is a projects repo to copy.
+Each project keeps its own folder in `projects/` at the top of this repo, such as `projects/acme/`: `config.json` and `RULES.md`, plus any reader or guide it wrote itself. Git ignores `projects/`, so a project's settings never get pushed to this public repo. [`projects-example/`](projects-example/) shows the layout to copy.
 
 You have two jobs here. **Set up a project** once, then do the **daily run** on a schedule.
 
@@ -23,14 +23,14 @@ You have two jobs here. **Set up a project** once, then do the **daily run** on 
 Ask the person only what you cannot look up. Done when the first run's items show on the review page and the person has seen them.
 
 1. **Ask what to connect.** Which sources and which channels in them, and which destinations. Look up exact channel IDs, team keys and repo names yourself. Config takes exact, case-sensitive IDs only, never display names.
-2. **Make the project folder** in the person's private projects repo, copying [`projects-example/acme/`](projects-example/acme/) and the closest recipe in [`integrations/recipes.md`](integrations/recipes.md). In `RULES.md`, list people by their source user ID, say what counts, and say what goes to which destination.
+2. **Make the project folder** `projects/<project>/`, copying [`projects-example/acme/`](projects-example/acme/) and the closest recipe in [`integrations/recipes.md`](integrations/recipes.md). In `RULES.md`, list people by their source user ID, say what counts, and say what goes to which destination.
 3. **Wire each source** with a reader (see Sources below). Use one from `integrations/` by name when it fits. Test it on one channel with `--only <channel id>` and a cursor file holding `{}`. Check that every line has every field of the message format.
 4. **Wire each destination** with a guide (see Destinations below). Use one from `integrations/` by name when it fits. Confirm you can read the destination with your tools. With the MCP server, also write its tools file (see MCP server below).
 5. **Store tokens outside git.** Put each source token in the env var named by `secret`. In a cloud environment, store it as a network secret for the API's host and leave the env var unset.
-6. **Check the config.** Run `python3 connector/check.py <projects repo> <project>` until it exits 0. A repo that holds a single project keeps `config.json` at its top level and passes the folder alone, here and in the runner scripts.
+6. **Check the config.** Run `python3 connector/check.py <project>` until it exits 0. Here and in the runner scripts, `<project>` is the folder name in `projects/`, such as `acme`. A value with `/` is a folder path instead.
 7. **Set up the review store.** Pick one (see Review store below), set `review_store`, and follow its guide's "Set up". `sqlite` needs nothing but this repo. Put the link people open in `review_page`, and tell the person who can open it.
 8. **Run once.** Do the daily run below. The first run reads the whole history.
-9. **Schedule it.** Offer a daily scheduled run with the prompt in [`runner/prompt.txt`](runner/prompt.txt), and put its id in `routine` in `config.json` so `runner/fire.sh` can start it at any time. [`runner/README.md`](runner/README.md) has the steps. It needs this repo, the projects repo, every repo a guide writes to, and every connector a guide names.
+9. **Schedule it.** Offer a daily scheduled run with the prompt in [`runner/prompt.txt`](runner/prompt.txt), and put its id in `routine` in `config.json` so `runner/fire.sh` can start it at any time. [`runner/README.md`](runner/README.md) has the steps. It needs this repo, every repo a guide writes to, and every connector a guide names. A scheduled cloud run clones this repo from GitHub, and `projects/` never goes there. To run a project in the cloud, keep its folder as a private repo of its own, give the task that repo too, and point the prompt at that folder.
 
 ## Sources
 
@@ -174,7 +174,7 @@ An item is **decided** when `decision.status` is `approved` or `rejected`, or wh
 
 Run the steps in order. Each ends on its done line.
 
-0. **Check.** Run `python3 connector/check.py <projects repo> <project>`. Exit 1: write a `runs` doc with its errors, write nothing else, and stop. Otherwise keep its output: it gives each reader command, each guide path and the review store's guide at `review_store.guide_path`. Then read that guide and the project's `RULES.md`.
+0. **Check.** Run `python3 connector/check.py <project folder>`. Exit 1: write a `runs` doc with its errors, write nothing else, and stop. Otherwise keep its output: it gives each reader command, each guide path and the review store's guide at `review_store.guide_path`. Then read that guide and the project's `RULES.md`.
    For each guide whose `Docs checked` date is more than 7 days old, read the doc pages it links. When a page lists a field the guide's "A complete record" list lacks, add `Guide out of date: <guide>, <field>, <page>` to the run's `errors`, so a person updates the guide and its date.
 
 1. **Push approved items.** Read `proposals`. For each item with `decision.status == "approved"` and no `pushed`, one at a time:
@@ -204,7 +204,7 @@ Nothing reaches a destination without `decision.status == "approved"`. Rejected 
 
 This repo stays generic. It holds no real project's names, IDs, people or links.
 
-- `projects-example/` passes `connector/check.py`. Readers and review stores are Python 3.10+, standard library only.
+- `projects-example/acme/` passes `connector/check.py`. Nothing under `projects/` is ever committed. Readers and review stores are Python 3.10+, standard library only.
 - An integration is a folder in `integrations/` holding `reader.py`, `guide.md`, or both, plus any small script its guide or reader calls, such as `download.py`, `upload.py` or `store.py`. A recipe shows one source and one destination wired together.
 - `.claude/hooks/require-ctx-marker.py` refuses destination writes that lack a `ctx: ` marker, and any chat post. It checks that a marker is present, not that the item was approved. Add new write tools to its list. It loads only in sessions started inside this repo, such as `runner/run.sh`. Scheduled cloud runs start one folder above, so it does not load there.
 - `ui/review.html` is one file with no build step and shows any destination type. It names no review store except in `claudeStore` and `httpStore`. After a change, open it through `integrations/sqlite/serve.py`, take a screenshot, and republish it to each claude.ai artifact that serves it, made with `ui/named.py` so it keeps that project's name. The page says "Context Inbox" twice, in `<title>` and in the `brand` line; `ui/named.py` replaces exactly those two.

@@ -1,13 +1,14 @@
 """Find project folders, check their config, and print what the run should use.
 
 Usage:
-  python3 connector/check.py PROJECTS_DIR [PROJECT]
-  python3 connector/check.py PROJECT_DIR
-  CONTEXT_INBOX_PROJECTS=PROJECTS_DIR python3 connector/check.py
+  python3 connector/check.py            every project in projects/
+  python3 connector/check.py PROJECT    only projects/PROJECT
+  python3 connector/check.py PATH       the project folder at PATH, such as ./projects/acme
 
-PROJECTS_DIR  folder holding one subfolder per project.
-PROJECT       check only this project folder name.
-PROJECT_DIR   a single project folder, such as a repo that holds one project.
+Each project is a folder in projects/ at the top of this repo, such as
+projects/acme/. Git ignores projects/, so nothing in it gets pushed. A value
+with "/" is a folder path, anything else a project name. CONTEXT_INBOX_PROJECTS
+names another folder to look in instead of projects/.
 
 A project folder holds config.json and RULES.md. In config, `reader`, `guide`
 and `review_store` take an integration name (a folder in integrations/, such
@@ -28,6 +29,17 @@ REPO = Path(__file__).resolve().parent.parent
 SAFE_ID = re.compile(r"^[A-Za-z0-9_.~:@+-]+$")
 SLACK_CHANNEL = re.compile(r"^[CDG][A-Z0-9]{6,}$")
 PAGE = re.compile(r"^https://claude\.ai/(code/)?artifact/[A-Za-z0-9-]+$")
+
+
+def projects_root() -> Path:
+    return Path(os.environ.get("CONTEXT_INBOX_PROJECTS") or REPO / "projects")
+
+
+def project_dir(arg: str) -> Path:
+    """A project name, such as "acme", is a folder in projects/. A value with "/" is the folder itself."""
+    return Path(os.path.abspath(arg if "/" in arg else projects_root() / arg))
+
+
 URL = re.compile(r"^https?://[^\s<>]+$")
 PLACEHOLDER = re.compile(r"replace|example|00000000")
 TOP_KEYS = {"project", "name", "review_page", "review_store", "routine", "old_after_hours", "sources", "destinations"}
@@ -226,17 +238,17 @@ def check(project: Path) -> dict:
 
 def main() -> None:
     args = sys.argv[1:]
-    root_arg = args[0] if args else os.environ.get("CONTEXT_INBOX_PROJECTS", "")
-    if not root_arg or not Path(root_arg).is_dir():
+    if len(args) > 1 or (args and args[0].startswith("-")):
         sys.exit(__doc__)
-    root = Path(root_arg).resolve()
-    only = args[1] if len(args) > 1 else None
-    if (root / "config.json").exists() and not only:
-        folders = [root]
+    if args:
+        folders = [project_dir(args[0]).resolve()]
+        if not (folders[0] / "config.json").is_file():
+            sys.exit(f"no config.json in {folders[0]}")
     else:
-        folders = sorted(p for p in root.iterdir() if (p / "config.json").exists() and (not only or p.name == only))
-    if not folders:
-        sys.exit(f"no project folder with config.json in {root}" + (f" named {only!r}" if only else ""))
+        root = projects_root().resolve()
+        folders = sorted(p for p in root.iterdir() if (p / "config.json").is_file()) if root.is_dir() else []
+        if not folders:
+            sys.exit(f"no project folder with config.json in {root}")
     failed = False
     for p in folders:
         r = check(p)

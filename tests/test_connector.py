@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,7 +20,9 @@ def check(cfg, files=(), single=False):
             open(os.path.join(p, f), "w").close()
         with open(os.path.join(p, "config.json"), "w") as fh:
             fh.write(cfg if isinstance(cfg, str) else json.dumps(cfg))
-        r = subprocess.run([sys.executable, CHECK, p if single else d], capture_output=True, text=True)
+        # By name, the check looks in CONTEXT_INBOX_PROJECTS, which stands in for projects/ here.
+        env = {**os.environ, "CONTEXT_INBOX_PROJECTS": d}
+        r = subprocess.run([sys.executable, CHECK, p if single else "p"], capture_output=True, text=True, env=env)
         return r.returncode, r.stderr
 
 
@@ -102,7 +105,7 @@ class ConnectorTest(unittest.TestCase):
 
     def test_example_project_passes(self):
         r = subprocess.run(
-            [sys.executable, CHECK, os.path.join(REPO, "projects-example")], capture_output=True, text=True
+            [sys.executable, CHECK, os.path.join(REPO, "projects-example", "acme")], capture_output=True, text=True
         )
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn('"name": "sqlite"', r.stdout)
@@ -148,6 +151,21 @@ class ConnectorTest(unittest.TestCase):
                 code, err = check(cfg)
                 self.assertEqual(code, 1, err)
                 self.assertNotIn("Traceback", err)
+
+    def test_projects_folder_is_ignored_and_checked_by_name(self):
+        ignored = subprocess.run(["git", "-C", REPO, "check-ignore", "-q", "projects/acme/config.json"])
+        self.assertEqual(ignored.returncode, 0, "git must ignore projects/")
+        with tempfile.TemporaryDirectory() as d:
+            env = {**os.environ, "CONTEXT_INBOX_PROJECTS": d}
+            none = subprocess.run([sys.executable, CHECK], capture_output=True, text=True, env=env)
+            self.assertNotEqual(none.returncode, 0)
+            shutil.copytree(os.path.join(REPO, "projects-example", "acme"), os.path.join(d, "acme"))
+            for args in ([], ["acme"]):
+                with self.subTest(args):
+                    r = subprocess.run([sys.executable, CHECK, *args], capture_output=True, text=True, env=env)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+            missing = subprocess.run([sys.executable, CHECK, "nope"], capture_output=True, text=True, env=env)
+            self.assertNotEqual(missing.returncode, 0)
 
 
 if __name__ == "__main__":

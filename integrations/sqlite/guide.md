@@ -5,7 +5,7 @@ One file holds the items, the saved cursors and the run log. [`store.py`](store.
 ## Set up
 
 1. The file is `review.db` in the project folder. `store.py` makes it on first use.
-2. Add `review.db*` to the `.gitignore` of the projects repo. The file holds quotes from messages.
+2. Git ignores `projects/`, so the file stays out of git. Keep it out of every repo: it holds quotes from messages.
 3. In `config.json`, set `"review_store": "sqlite"` and `"review_page": "http://127.0.0.1:47821"`.
 4. Start the page and give the person the link and this command. The page shows the `name` from the `config.json` beside the file, or `--config` names another:
    ```sh
@@ -35,7 +35,7 @@ Every command starts with `python3 integrations/sqlite/store.py <project folder>
 Start the page with `--on-decide` and each decision takes effect at once, with no wait for the daily run:
 
 ```sh
-python3 integrations/sqlite/serve.py <project folder>/review.db --on-decide "runner/act.sh <projects repo> <project>"
+python3 integrations/sqlite/serve.py <project folder>/review.db --on-decide "runner/act.sh <project>"
 ```
 
 - Approve: `runner/act.sh` writes that item to its destination now and saves `pushed`.
@@ -49,7 +49,7 @@ Each action is logged in `act.log` in the project folder. The daily run still pu
 Start the page with `--every` and `--run`, and a run reads new messages every few minutes while the page is up:
 
 ```sh
-python3 integrations/sqlite/serve.py <project folder>/review.db --every 5 --run "runner/read-now.sh <projects repo> <project>"
+python3 integrations/sqlite/serve.py <project folder>/review.db --every 5 --run "runner/read-now.sh <project>"
 ```
 
 While the computer is off, messages wait. The first run after it comes back marks items whose messages waited longer than `old_after_hours` with "Old, waited ..." in place of the date.

@@ -45,9 +45,28 @@ class PermissionsTest(unittest.TestCase):
             self.assertNotIn("Write", perms["allow"])
             self.assertNotIn("Edit", perms["allow"])
             self.assertIn(f"Edit(/{real}/**)", perms["allow"])
-            self.assertIn(f"Edit(/{REPO}/**)", perms["deny"])
+            for part in ("connector", "runner", "server", "integrations", ".claude", ".git"):
+                self.assertIn(f"Edit(/{REPO}/{part}/**)", perms["deny"])
+            self.assertIn(f"Edit(/{REPO}/projects/**)", perms["deny"])
             self.assertIn(f"Read(/{os.path.abspath(d)}/server.json)", perms["deny"])
             self.assertIn(f"Read(/{os.path.realpath(d)}/server.json)", perms["deny"])
+
+    def test_project_in_projects_folder_may_edit_only_itself(self):
+        projects = os.path.join(REPO, "projects")
+        os.makedirs(projects, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=projects) as mine, tempfile.TemporaryDirectory(dir=projects) as sibling:
+            shutil.copytree(os.path.join(REPO, "projects-example", "acme"), mine, dirs_exist_ok=True)
+            out = subprocess.run(
+                [sys.executable, os.path.join(REPO, "runner", "permissions.py"), os.path.basename(mine)],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            perms = json.loads(out.stdout)["permissions"]
+            self.assertIn(f"Edit(/{mine}/**)", perms["allow"])
+            self.assertIn(f"Edit(/{sibling}/**)", perms["deny"])
+            self.assertIn(f"Edit(/{REPO}/runner/**)", perms["deny"])
+            self.assertFalse([r for r in perms["deny"] if r in (f"Edit(/{mine}/**)", f"Edit(/{projects}/**)")])
 
 
 if __name__ == "__main__":

@@ -1,10 +1,12 @@
 """Print the Claude Code settings a daily run gets, as JSON for `claude --settings`.
 
-Usage: python3 runner/permissions.py PROJECT_DIR
+Usage: python3 runner/permissions.py PROJECT
+
+PROJECT is a folder name in projects/, such as acme, or a path with "/".
 
 The run may start only the programs the config check names: each reader, the
 download script beside a built-in reader, and the store's command line. It may
-not edit this repo, those programs, the destinations' tools files or the review
+not edit this repo outside its own project folder, those programs, the destinations' tools files or the review
 store's file, so it cannot plant a script and start it. It may neither read nor
 edit Claude Code's own settings, or the MCP server's registration file named by
 CONTEXT_INBOX_MCP_CONFIG, where the destination keys and pins sit.
@@ -19,6 +21,8 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(HERE / "connector"))
+import check  # noqa: E402
 
 
 def rule_paths(path) -> list:
@@ -33,7 +37,7 @@ def rule_paths(path) -> list:
 def main() -> None:
     if len(sys.argv) != 2:
         sys.exit(__doc__)
-    project = Path(os.path.abspath(sys.argv[1]))
+    project = check.project_dir(sys.argv[1])
     out = subprocess.run(
         [sys.executable, str(HERE / "connector" / "check.py"), str(project)], capture_output=True, text=True
     )
@@ -72,7 +76,15 @@ def main() -> None:
     allow += [f"Edit({r}/**)" for p in writable for r in rule_paths(p)]
     allow += ["Read", "Glob", "Grep", "ToolSearch", "ArtifactData", "mcp__context-inbox"]
     allow += os.environ.get("CONTEXT_INBOX_TOOLS", "").split()
-    locked = [HERE / "**", project / "review.db", project / "review.db-*", *programs]
+    # The project folder sits inside this repo, in projects/. Lock the rest of the repo, sibling projects included.
+    real = Path(os.path.realpath(project))
+    projects = HERE / "projects"
+    locked = [c / "**" if c.is_dir() else c for c in sorted(HERE.iterdir()) if c != projects]
+    if projects == real.parent:
+        locked += [c / "**" if c.is_dir() else c for c in sorted(projects.iterdir()) if c != real]
+    elif projects.is_dir() and projects not in real.parents:
+        locked.append(projects / "**")
+    locked += [project / "review.db", project / "review.db-*", *programs]
     locked += [d["tools_path"] for d in checked["destinations"] if d.get("tools_path")]
     deny = ["Read(~/.claude.json)", "Edit(~/.claude.json)", "Read(~/.claude/**)", "Edit(~/.claude/**)"]
     server_file = os.environ.get("CONTEXT_INBOX_MCP_CONFIG")

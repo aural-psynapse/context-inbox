@@ -1,9 +1,10 @@
 """Context Inbox MCP server: the agent's only door to the review store and the destinations.
 
 Usage (as an MCP server over stdio, standard library only):
-  python3 server/mcp.py PROJECT_DIR [--db PATH]
+  python3 server/mcp.py PROJECT [--db PATH]
 
-PROJECT_DIR holds config.json. The items live in PROJECT_DIR/review.db unless
+PROJECT is a folder name in projects/, such as acme, or a path with "/". That
+folder holds config.json. The items live in its review.db unless
 --db names another file. It is the same file integrations/sqlite/serve.py shows.
 
 What the agent can do here:
@@ -28,7 +29,7 @@ settings in config.json matches the pin a person set in CONTEXT_INBOX_PINS, a
 JSON object { destination id: sha256 } in the server's environment. A run that
 edits either one therefore switches that destination off until a person reads
 them and pins them again.
-  python3 server/mcp.py PROJECT_DIR --print-pins   prints the current hashes
+  python3 server/mcp.py PROJECT --print-pins   prints the current hashes
 """
 
 import argparse
@@ -303,7 +304,7 @@ def main() -> None:
     ap.add_argument("--db")
     ap.add_argument("--print-pins", action="store_true", help="print each tools file's sha256 for CONTEXT_INBOX_PINS")
     a = ap.parse_args()
-    project = Path(a.project).resolve()
+    project = check.project_dir(a.project).resolve()
     if a.print_pins:
         dests = json.loads((project / "config.json").read_text()).get("destinations", [])
         pins = {d["id"]: pin_of(tools_path(project, d["tools"]).read_bytes(), d) for d in dests if d.get("tools")}

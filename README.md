@@ -104,33 +104,34 @@ Items wait here until someone decides. You answer the agent's questions, follow 
 | Part | What it does |
 |---|---|
 | [MCP server](server/mcp.py) | The agent's one door to the items and the destinations. Reads go through, changes wait for a person, and only approved items get written. |
-| [Connector](connector/check.py) | Finds your projects repo and checks every config. A mistake stops the run before it reads a message. |
+| [Connector](connector/check.py) | Finds each project folder in `projects/` and checks its config. A mistake stops the run before it reads a message. |
 | [Review page](ui/review.html) | Approve, reject, edit and answer. Filters by status and destination. Run log. |
 | [Runner](runner/) | The daily prompt. [`fire.sh`](runner/fire.sh) starts a run from any agent or script. [`run.sh`](runner/run.sh) runs once while you watch. [`act.sh`](runner/act.sh) acts on one decision at once, [`read-now.sh`](runner/read-now.sh) reads on a timer. [`permissions.py`](runner/permissions.py) limits what each run may start and write. |
 | [Agent instructions](AGENTS.md) | Setup and the daily run, step by step, plus the [proposal rules](RULES.md). |
 | [Skills and hook](.claude/) | Claude Code skills for setup and run-now. A hook that refuses the destination writes it lists when they lack a `ctx:` marker, and any chat post. |
-| [Example projects repo](projects-example/) | Acme: Slack to Linear and Slack to Attio. |
+| [Example project](projects-example/) | Acme: Slack to Linear and Slack to Attio. |
 
 ## Manual setup
 
 You need [Claude Code](https://docs.claude.com/en/docs/claude-code) with a connector or CLI for each destination, and Python 3.10+.
 
-1. **Make a project folder** in a private repo of its own, starting from [`projects-example/`](projects-example/). Edit `config.json` and `RULES.md`, then check them:
+1. **Make a project folder** in `projects/`, copied from [`projects-example/acme/`](projects-example/acme/). Git ignores `projects/`, so your settings stay on your machine. Edit `config.json` and `RULES.md`, then check them:
    ```sh
-   python3 connector/check.py <projects repo> <project>
+   cp -R projects-example/acme projects/<project>
+   python3 connector/check.py <project>
    ```
-   A repo that holds a single project can keep `config.json` at its top level. Then pass the folder alone: `connector/check.py <project folder>`. The runner scripts accept the same.
+   `<project>` is the folder name, such as `acme`. The runner scripts and the MCP server take the same name.
 2. **Start the review page.** The default keeps the items in one SQLite file beside your config:
    ```sh
-   python3 integrations/sqlite/serve.py <project folder>/review.db   # then open http://127.0.0.1:47821
+   python3 integrations/sqlite/serve.py projects/<project>/review.db   # then open http://127.0.0.1:47821
    ```
    It has no login and answers on your machine only. To review on claude.ai with your team signed in, follow [`integrations/claude-artifact/guide.md`](integrations/claude-artifact/guide.md). To keep the items in a database you already have, see "Review store" in [`AGENTS.md`](AGENTS.md).
 3. **Set each source token** in the env var named by its `secret`. The Slack reader needs a user token with `channels:history`, `groups:history`, `im:history`, `mpim:history` and `users:read`.
 4. **Optional: keep the keys out of the agent's reach.** Put each destination behind the MCP server, as "MCP server" in [`AGENTS.md`](AGENTS.md) describes: a tools file per destination, pinned by you, and one registration file with the keys.
-5. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Start extra runs with:
+5. **Schedule it.** Copy [`runner/prompt.txt`](runner/prompt.txt), replace `<project folder>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. A scheduled cloud run clones this repo from GitHub, and `projects/` never goes there. To run a project in the cloud, keep its folder as a private repo of its own, give the task that repo too, and point the prompt at that folder. Start extra runs with:
    ```sh
-   runner/fire.sh <projects repo> <project>   # no person needed
-   runner/run.sh  <projects repo> <project>   # watch it run
+   runner/fire.sh <project>   # no person needed
+   runner/run.sh  <project>   # watch it run
    ```
 
 <details>
@@ -170,7 +171,8 @@ ui/review.html           review page and run log
 ui/named.py              the review page with a project's name
 runner/                  daily prompt, run scripts, permissions.py
 .claude/                 skills and the write check
-projects-example/        a projects repo to copy
+projects/                your project folders, ignored by git
+projects-example/        an example project to copy
 scripts/release.sh       makes a release
 ```
 
@@ -180,7 +182,7 @@ scripts/release.sh       makes a release
 
 Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and report security problems as [SECURITY.md](SECURITY.md) describes.
 
-- Keep this repo generic: no real company names, IDs, people or links. Those belong in a projects repo.
+- Keep this repo generic: no real company names, IDs, people or links. Those belong in `projects/`, which git ignores.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org): `fix:` for a bug fix, `feat:` for a feature, `feat!:` for a change that breaks existing setups.
 - Agents working on the repo should read "Changing this repo" in [AGENTS.md](AGENTS.md).
 

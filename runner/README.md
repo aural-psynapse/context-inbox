@@ -1,7 +1,9 @@
 # Runner
 
-- `run.sh PROJECTS_DIR PROJECT` (or `run.sh PROJECT_DIR`) checks the project's config, then opens an interactive Claude Code session that runs the daily run once. With the `claude-artifact` review store, a session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
+- `run.sh PROJECT` checks the project's config, then opens an interactive Claude Code session that runs the daily run once. With the `claude-artifact` review store, a session started with `claude -p` gets no review page tools, so the script does not use it. A config error prints the errors and stops before Claude starts, so no run log entry gets written.
 - `prompt.txt` is the prompt for a scheduled run.
+
+Every script takes `PROJECT`: a folder name in `projects/`, such as `acme`, or a path with `/`.
 
 ## Run on this machine
 
@@ -14,10 +16,11 @@
 
 A scheduled run happens in the cloud, so it needs a review store it can reach from there. The `sqlite` store lives in a file on one machine: run that one with `run.sh`.
 
-Copy `prompt.txt`, replace `<projects repo>/<project>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Give it:
+Copy `prompt.txt`, replace `<project folder>` with your project folder, and save it as a Claude Code scheduled task with a daily cron. Give it:
 
 - context-inbox.
-- Your projects repo, and every repo a guide writes to.
+- Your project folder as a private repo of its own. The cloud run clones context-inbox from GitHub, and `projects/` never goes there.
+- Every repo a guide writes to.
 - Every connector your guides name.
 - Each source token as a network secret for its API host.
 
@@ -27,11 +30,11 @@ A scheduled run with a config error writes a run log entry with the errors and w
 
 ## Start a run from an agent or a script
 
-`fire.sh PROJECTS_DIR PROJECT` (or `fire.sh PROJECT_DIR`) starts the project's scheduled task now and prints the link to the run. No person needs to watch.
+`fire.sh PROJECT` starts the project's scheduled task now and prints the link to the run. No person needs to watch.
 
 - Put the task's id in `routine` in the project's `config.json`, such as `"routine": "trig_01ABC"`. `RemoteTrigger` with action `list` shows the ids, and so does the task's page on claude.ai.
 - The script asks a background Claude Code session to start the task. That session needs a claude.ai sign-in and nothing else.
-- `fire.sh PROJECTS_DIR PROJECT --check` only confirms the task exists and prints its schedule.
+- `fire.sh PROJECT --check` only confirms the task exists and prints its schedule.
 - For a caller with no Claude Code, such as an alert, add an API trigger to the task on the web, as [the scheduled tasks docs](https://code.claude.com/docs/en/routines#add-an-api-trigger) describe. Set `CONTEXT_INBOX_FIRE_URL` and `CONTEXT_INBOX_FIRE_TOKEN` to its Fire URL and token, outside git. `fire.sh` then calls that URL directly.
 
 `run.sh` is for a person at the keyboard. A session started with `claude -p` cannot load the review page tools, so a script cannot use `run.sh`.

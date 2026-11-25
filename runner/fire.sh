@@ -1,6 +1,6 @@
 #!/bin/sh
 # Start a project's scheduled cloud run now, with no person in the loop.
-# Usage: runner/fire.sh PROJECTS_DIR PROJECT [--check], or runner/fire.sh PROJECT_DIR [--check]
+# Usage: runner/fire.sh PROJECT [--check]. PROJECT is a folder name in projects/, such as acme, or a path with /.
 # Reads the scheduled task id from "routine" in the project's config.json and
 # starts it through Claude Code, which must be signed in with a claude.ai account.
 # With CONTEXT_INBOX_FIRE_URL and CONTEXT_INBOX_FIRE_TOKEN set, it calls the
@@ -9,10 +9,9 @@
 set -eu
 [ $# -ge 1 ] || { sed -n 2,8p "$0"; exit 2; }
 here=$(cd "$(dirname "$0")/.." && pwd)
-case "${2:-}" in
-  ""|--check) cfg="$1/config.json"; check=${2:-} ;;
-  *) cfg="$1/$2/config.json"; check=${3:-} ;;
-esac
+case "$1" in */*) dir=$1 ;; *) dir="${CONTEXT_INBOX_PROJECTS:-$here/projects}/$1" ;; esac
+cfg="$dir/config.json"
+check=${2:-}
 id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("routine", ""))' "$cfg")
 
 if [ -n "${CONTEXT_INBOX_FIRE_URL:-}" ] && [ -n "${CONTEXT_INBOX_FIRE_TOKEN:-}" ] && [ "$check" != "--check" ]; then
